@@ -1,0 +1,1725 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Leads Manuais · versão beta · MDV</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23f07c1f'/><text x='32' y='43' font-family='Inter,Arial,sans-serif' font-size='23' font-weight='700' fill='%23fff' text-anchor='middle'>CLT</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#f4f5f7; --surface:#ffffff; --surface-2:#fafbfc;
+    --border:#e3e6ea; --border-strong:#d2d7de;
+    --text:#161a20; --text-2:#5a6472; --text-3:#8a94a3;
+    --brand:#1b2430; --brand-2:#f07c1f; --brand-soft:#fff2e4;
+    --mdv-1:#f2821d; --mdv-2:#fbb040;
+    --novo:#64748b; --novo-bg:#f1f3f6;
+    --contato:#0891b2; --contato-bg:#e2f4f8;
+    --nego:#7c3aed; --nego-bg:#f1eafe;
+    --cancel:#dc2626; --cancel-bg:#fdecec;
+    --venda:#15803d; --venda-bg:#e6f5ec;
+    --quente:#d9480f; --quente-bg:#fff0e6;
+    --parado:#b45309; --parado-bg:#fff7e6;
+    --radius:10px; --shadow:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.06);
+    --shadow-lg:0 10px 30px rgba(16,24,40,.12);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:var(--bg); color:var(--text); font-size:14px; line-height:1.45;
+    -webkit-font-smoothing:antialiased; display:flex; flex-direction:column; min-height:100vh;
+  }
+  button,input,select,textarea{font:inherit;color:inherit}
+  button{cursor:pointer}
+  a{color:var(--brand-2)}
+  .hide{display:none !important}
+  .logo-mdv{height:28px;width:auto;display:block}
+
+  /* ---------- Login ---------- */
+  #telaLogin,#telaConfig{flex:1;display:grid;place-items:center;padding:24px;
+    background:radial-gradient(1200px 600px at 20% 0%,#2a3545 0%,#1b2430 55%,#141b24 100%)}
+  .login-card{width:100%;max-width:400px;background:var(--surface);border-radius:16px;
+    padding:30px 28px;box-shadow:0 24px 60px rgba(8,12,20,.45)}
+  .login-card .logo-mdv{height:40px;margin:0 auto 18px}
+  .login-card h1{font-size:19px;margin:0 0 4px;letter-spacing:-.2px;text-align:center}
+  .login-card p.sub{margin:0 0 22px;color:var(--text-2);font-size:13px;text-align:center}
+  .campo{margin-bottom:14px}
+  .campo label{display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px}
+  .campo input,.campo select,.campo textarea{width:100%;padding:10px 12px;border:1px solid var(--border-strong);
+    border-radius:8px;background:var(--surface);outline:none;transition:border-color .15s,box-shadow .15s}
+  .campo input:focus,.campo select:focus,.campo textarea:focus{border-color:var(--brand-2);
+    box-shadow:0 0 0 3px rgba(240,124,31,.18)}
+  .campo .dica{font-size:11.5px;color:var(--text-3);margin-top:5px}
+  .obrig{color:var(--cancel)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 16px;
+    border-radius:8px;border:1px solid var(--border-strong);background:var(--surface);
+    font-weight:600;font-size:13px;transition:background .15s,border-color .15s,opacity .15s}
+  .btn:hover{background:var(--surface-2)}
+  .btn:disabled{opacity:.55;cursor:not-allowed}
+  .btn-primary{background:linear-gradient(135deg,var(--mdv-1),var(--mdv-2));border-color:var(--mdv-1);color:#fff}
+  .btn-primary:hover{filter:brightness(1.05)}
+  .btn-danger{color:var(--cancel);border-color:#f0c4c6;background:#fff}
+  .btn-danger:hover{background:var(--cancel-bg)}
+  .btn-full{width:100%}
+  .btn-sm{padding:6px 10px;font-size:12px;border-radius:7px}
+  .link-btn{background:none;border:none;color:var(--brand-2);font-size:12.5px;font-weight:600;padding:0}
+  .link-btn:hover{text-decoration:underline}
+  .aviso{padding:10px 12px;border-radius:8px;font-size:12.5px;margin-bottom:14px;line-height:1.4}
+  .aviso-erro{background:var(--cancel-bg);color:var(--cancel);border:1px solid #f5cdd0}
+  .aviso-ok{background:var(--venda-bg);color:var(--venda);border:1px solid #c5e6d3}
+  .aviso-info{background:var(--brand-soft);color:#9a4a06;border:1px solid #f8ddc2}
+
+  /* ---------- Layout ---------- */
+  header.top{position:sticky;top:0;z-index:40;background:var(--brand);color:#fff}
+  .top-in{max-width:1480px;margin:0 auto;padding:9px 18px;display:flex;align-items:center;gap:14px}
+  .marca{display:flex;align-items:center;gap:11px}
+  .marca .nm{font-weight:600;font-size:13px;opacity:.82;border-left:1px solid rgba(255,255,255,.22);padding-left:11px}
+  .beta{display:inline-block;background:linear-gradient(135deg,var(--mdv-1),var(--mdv-2));color:#fff;
+    font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;
+    padding:2px 7px;border-radius:999px;vertical-align:middle}
+  .login-card .beta{margin-bottom:8px}
+  .top-sp{flex:1}
+  .usr{display:flex;align-items:center;gap:9px;font-size:12.5px}
+  .avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--mdv-1),var(--mdv-2));
+    display:grid;place-items:center;font-weight:700;font-size:12px;color:#fff}
+  .usr-nome{font-weight:600;line-height:1.2}
+  .usr-perfil{opacity:.72;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+  .btn-top{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#fff;
+    padding:7px 11px;border-radius:8px;font-size:12.5px;font-weight:600}
+  .btn-top:hover{background:rgba(255,255,255,.18)}
+  nav.abas{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:48px;z-index:35}
+  .abas-in{max-width:1480px;margin:0 auto;padding:0 18px;display:flex;gap:2px;overflow-x:auto}
+  .aba{padding:12px 14px;border:none;background:none;font-weight:600;font-size:13px;color:var(--text-2);
+    border-bottom:2px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:7px}
+  .aba:hover{color:var(--text)}
+  .aba.on{color:var(--brand-2);border-bottom-color:var(--brand-2)}
+  .bolha{background:var(--cancel);color:#fff;border-radius:999px;font-size:10.5px;font-weight:700;
+    padding:1px 6px;line-height:1.5}
+  main{flex:1;width:100%;max-width:1480px;margin:0 auto;padding:18px}
+  .painel{display:none}
+  .painel.on{display:block}
+  footer.rodape{border-top:1px solid var(--border);background:var(--surface);padding:16px 18px;
+    text-align:center;font-size:12px;color:var(--text-3)}
+  footer.rodape b{color:var(--text-2);font-weight:600}
+
+  /* ---------- Barra ---------- */
+  .barra{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:12px;box-shadow:var(--shadow);margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .busca{position:relative;flex:1;min-width:220px}
+  .busca input{width:100%;padding:9px 12px 9px 34px;border:1px solid var(--border-strong);border-radius:8px;outline:none}
+  .busca input:focus{border-color:var(--brand-2);box-shadow:0 0 0 3px rgba(240,124,31,.18)}
+  .busca svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-3)}
+  select.sel{padding:9px 11px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);outline:none}
+
+  /* ---------- KPIs ---------- */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(142px,1fr));gap:10px;margin-bottom:14px}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;
+    box-shadow:var(--shadow);cursor:pointer;transition:border-color .15s}
+  .kpi:hover{border-color:var(--border-strong)}
+  .kpi.on{border-color:var(--brand-2);box-shadow:0 0 0 2px rgba(240,124,31,.14)}
+  .kpi .lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);
+    display:flex;align-items:center;gap:6px;margin-bottom:6px}
+  .kpi .val{font-size:24px;font-weight:700;letter-spacing:-.5px;line-height:1}
+  .kpi .sub{font-size:11.5px;color:var(--text-3);margin-top:3px}
+  .pt{width:7px;height:7px;border-radius:50%;display:inline-block}
+
+  /* ---------- Tabela ---------- */
+  .quadro{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    box-shadow:var(--shadow);overflow:hidden}
+  .quadro-cab{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;
+    gap:10px;flex-wrap:wrap;background:var(--surface-2)}
+  .quadro-cab h2{margin:0;font-size:13.5px;font-weight:700}
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead th{position:sticky;top:0;background:var(--surface-2);text-align:left;padding:9px 12px;
+    font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-3);
+    border-bottom:1px solid var(--border);white-space:nowrap;z-index:2}
+  thead th.ord{cursor:pointer;user-select:none}
+  thead th.ord:hover{color:var(--text)}
+  tbody td{padding:9px 12px;border-bottom:1px solid #eef0f3;vertical-align:middle}
+  tbody tr:hover{background:#fffaf5}
+  tbody tr:last-child td{border-bottom:none}
+  tr.quente{background:linear-gradient(90deg,rgba(240,124,31,.09),transparent 45%)}
+  tr.quente:hover{background:linear-gradient(90deg,rgba(240,124,31,.14),transparent 45%)}
+  .nome-cel{font-weight:600;letter-spacing:-.1px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+  .nowrap{white-space:nowrap}
+  .tel-cel{white-space:nowrap;min-width:136px}
+  td.mono{white-space:nowrap}
+  thead th:first-child,tbody td:first-child{min-width:262px}
+  .cpf{color:var(--text-2);font-size:12.5px}
+  .dinheiro{font-weight:600}
+  .tag{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;
+    font-size:11.5px;font-weight:600;white-space:nowrap}
+  .t-NOVO{background:var(--novo-bg);color:var(--novo)}
+  .t-CONTATO{background:var(--contato-bg);color:var(--contato)}
+  .t-SIMULACAO{background:var(--nego-bg);color:var(--nego)}
+  .t-REPROVADO{background:var(--cancel-bg);color:var(--cancel)}
+  .t-VENDA{background:var(--venda-bg);color:var(--venda)}
+  .selo-quente{background:var(--quente-bg);color:var(--quente);border:1px solid #ffd9bd;
+    padding:1px 7px;border-radius:999px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+  .selo-parado{background:var(--parado-bg);color:var(--parado);border:1px solid #fbe0ab;
+    padding:1px 7px;border-radius:999px;font-size:10.5px;font-weight:700;white-space:nowrap}
+  tr.parado td:first-child{box-shadow:inset 3px 0 0 var(--parado)}
+  .card.parado{box-shadow:inset 3px 0 0 var(--parado)}
+
+  /* ---------- Gráficos ---------- */
+  .graf{margin-top:6px}
+  .graf-linha{display:grid;grid-template-columns:150px 1fr 96px;gap:10px;align-items:center;
+    padding:5px 0;font-size:12.5px}
+  .graf-rot{color:var(--text-2);font-weight:600;display:flex;align-items:center;gap:7px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .graf-trilho{background:var(--surface-2);border-radius:5px;height:18px;overflow:hidden;display:flex}
+  .graf-barra{height:100%;border-radius:0 4px 4px 0;transition:width .3s}
+  .graf-val{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:var(--text)}
+  .graf-val small{color:var(--text-3);font-weight:500;margin-left:5px}
+  .pilha{display:flex;gap:2px;height:20px}
+  .pilha i{display:block;height:100%;min-width:2px}
+  .pilha i:first-child{border-radius:4px 0 0 4px}
+  .pilha i:last-child{border-radius:0 4px 4px 0}
+  .legenda{display:flex;gap:14px;flex-wrap:wrap;margin:2px 0 14px;font-size:12px;color:var(--text-2)}
+  .legenda span{display:flex;align-items:center;gap:6px}
+  .dica-graf{position:fixed;z-index:95;background:#161a20;color:#fff;padding:7px 10px;border-radius:7px;
+    font-size:12px;pointer-events:none;opacity:0;transition:opacity .12s;white-space:nowrap;
+    box-shadow:var(--shadow-lg)}
+  .dica-graf.on{opacity:1}
+  .graf-vazio{color:var(--text-3);font-size:12.5px;padding:14px 0}
+  select.st{padding:5px 8px;border-radius:7px;border:1px solid var(--border-strong);font-size:12px;
+    font-weight:600;background:var(--surface);max-width:170px}
+  .acoes{display:flex;gap:5px;align-items:center}
+  .ico{width:30px;height:30px;border-radius:7px;border:1px solid var(--border);background:var(--surface);
+    display:grid;place-items:center;padding:0}
+  .ico:hover{background:var(--surface-2);border-color:var(--border-strong)}
+  .ico.zap{color:#0f7043;border-color:#c5e6d3;background:var(--venda-bg)}
+  .ico.zap:hover{background:#d8eee1}
+  .resp{font-size:11.5px;color:var(--text-2)}
+  .resp b{color:var(--text);font-weight:600}
+  .obs-prev{font-size:11.5px;color:var(--text-3);max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .banco-cel{font-size:12px;font-weight:600;color:var(--text-2)}
+  .vazio{padding:46px 20px;text-align:center;color:var(--text-3)}
+  .vazio .big{font-size:30px;margin-bottom:8px}
+  .paginar{padding:11px 14px;border-top:1px solid var(--border);display:flex;align-items:center;
+    gap:10px;justify-content:center;flex-wrap:wrap;font-size:12.5px;color:var(--text-2);background:var(--surface-2)}
+
+  /* ---------- Modal ---------- */
+  .fundo{position:fixed;inset:0;background:rgba(16,24,40,.5);backdrop-filter:blur(2px);z-index:60;
+    display:grid;place-items:center;padding:16px}
+  .modal{background:var(--surface);border-radius:14px;width:100%;max-width:560px;max-height:92vh;
+    overflow:auto;box-shadow:var(--shadow-lg)}
+  .modal-cab{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px;
+    position:sticky;top:0;background:var(--surface);z-index:2}
+  .modal-cab h3{margin:0;font-size:16px;letter-spacing:-.2px}
+  .modal-cab .x{margin-left:auto;background:none;border:none;font-size:22px;line-height:1;color:var(--text-3);padding:0 2px}
+  .modal-corpo{padding:18px}
+  .modal-pe{padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:9px;justify-content:flex-end;
+    flex-wrap:wrap;position:sticky;bottom:0;background:var(--surface)}
+  .dl{display:grid;grid-template-columns:130px 1fr;gap:8px 14px;font-size:13px;margin-bottom:16px}
+  .dl dt{color:var(--text-3);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.3px}
+  .dl dd{margin:0;font-weight:500}
+  .hist{border-top:1px solid var(--border);margin-top:16px;padding-top:14px}
+  .hist h4{margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-3)}
+  .hist-i{display:flex;gap:10px;padding:8px 0;border-bottom:1px dashed var(--border);font-size:12.5px}
+  .hist-i:last-child{border:none}
+  .hist-i .q{color:var(--text-2);min-width:0}
+  .hist-i .w{margin-left:auto;color:var(--text-3);font-size:11.5px;white-space:nowrap}
+
+  /* ---------- Importar / caixas ---------- */
+  .solta{border:2px dashed var(--border-strong);border-radius:12px;padding:38px 20px;text-align:center;
+    background:var(--surface-2);transition:border-color .15s,background .15s}
+  .solta.hot{border-color:var(--brand-2);background:var(--brand-soft)}
+  .solta .big{font-size:34px;margin-bottom:10px}
+  .prev-tbl{font-size:12px;margin-top:14px;border:1px solid var(--border);border-radius:8px;overflow:auto;max-height:280px}
+  .map-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+  .barra-prog{height:7px;border-radius:999px;background:var(--border);overflow:hidden;margin:10px 0 6px}
+  .barra-prog i{display:block;height:100%;background:linear-gradient(90deg,var(--mdv-1),var(--mdv-2));transition:width .25s}
+  .cx{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;
+    box-shadow:var(--shadow);margin-bottom:14px}
+  .cx h2{margin:0 0 4px;font-size:15px;letter-spacing:-.2px}
+  .cx p.d{margin:0 0 14px;color:var(--text-2);font-size:12.5px}
+  .chip{padding:5px 10px;border-radius:999px;background:var(--surface-2);border:1px solid var(--border);
+    font-size:12px;font-weight:600;color:var(--text-2)}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:90;background:#161a20;
+    color:#fff;padding:11px 18px;border-radius:999px;font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);
+    opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:92vw;text-align:center}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(-4px)}
+  .carregando{flex:1;display:grid;place-items:center;min-height:50vh;color:var(--text-2);gap:12px}
+  .spin{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--brand-2);
+    border-radius:50%;animation:gira .7s linear infinite}
+  @keyframes gira{to{transform:rotate(360deg)}}
+
+  /* ---------- Cartões (mobile) ---------- */
+  .cards{display:none}
+  .card{border-bottom:1px solid var(--border);padding:13px 14px}
+  .card.quente{background:linear-gradient(90deg,rgba(240,124,31,.09),transparent 60%)}
+  .card:last-child{border:none}
+  .card-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+  .card-top .nm{font-weight:600;flex:1;letter-spacing:-.1px}
+  .card-meta{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--text-2);margin-bottom:10px}
+  .card-acoes{display:flex;gap:7px;align-items:center}
+  .card-acoes select.st{flex:1;max-width:none}
+
+  @media(max-width:860px){
+    .kpis{display:flex;overflow-x:auto;gap:8px;padding-bottom:4px;scroll-snap-type:x proximity;
+      -webkit-overflow-scrolling:touch}
+    .kpis::-webkit-scrollbar{height:0}
+    .kpi{min-width:132px;flex:0 0 auto;padding:10px 12px;scroll-snap-align:start}
+    .kpi .val{font-size:20px}
+    .kpi .lbl{margin-bottom:4px}
+    .tbl-wrap{display:none}
+    .cards{display:block}
+    .dl{grid-template-columns:1fr;gap:3px 0}
+    .dl dt{margin-top:9px}
+    .map-grid{grid-template-columns:1fr}
+    main{padding:12px}
+    .barra{padding:10px}
+    nav.abas{top:46px}
+    .marca .nm{display:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- ======================= CONFIG FIREBASE ======================= -->
+<script>
+window.FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCZ2kUYimP47khfECZ1x6KYmjZOz6euKAI",
+  authDomain: "painel-de-vendas-mdv.firebaseapp.com",
+  projectId: "painel-de-vendas-mdv",
+  storageBucket: "painel-de-vendas-mdv.firebasestorage.app",
+  messagingSenderId: "1084094069516",
+  appId: "1:1084094069516:web:fd5f4e8374374b1119e729"
+};
+window.ADMIN_MASTER = "alberson.nunes@unicapromotora.com.br";
+window.LOGO_MDV = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJsAAAA4CAMAAADdN3r+AAAAkFBMVEX9mSr9mjX8ljT9rUj9sUr9skz9ljH6qk39wlv+zln+xFz9wVj/ZRr9chv+axe/fz+qqlX9fSL/VVX///9/fwCqVVX/zDMAAAD+tk/9qUT9mDb9pTv+w1v9iSr+qlT//wD+fgD/fz7+x2D/AAD9nUH/vj79tVL+uFT8ljX+dR38mDX/f3/9eyH+qkb//3/7mjhd1DAfAAAAMHRSTlMfpFHQn27VI1ci16sTXuoEA5wDAQIDBQD9/f39/f0DAQIE/gH9BE4OdPfTAvxNAhCkuQEzAAAHjElEQVR42rWZiXriNhCA5QMMSbZ7tZVsGcugcMRs4P3frqN75BO27XzJLjG29GtOjUy+vNGWPiktbVNChaDt9zWWJEnhOnxPotsFJet152SdwIVRaWSqbsuUwL8r8sfH03AtfUt2KSUtJbuhJBqPxGy7yguvyMSEV5qU1Xup5f29vADbx5fn4GDoZDfNpvFgAWjMhiYVgrvQ/fiS7/Dtu5Xy/azYnoNr6H69m2erNB1BqyGYrWtGjbqnq7LSetNsOdVsv75QIh9E24Pz7BbYgK5KCBpT7jtPBkJggUMRstNsVm+FJB+KDeDe5KNooBbN1gzZqip8qlL6p/BPXXhgg2hoxryNlE4ALSuoZvv42H1XYfcIWmrn77NVBsh+qz8l1EVk64zKtayPI6G6p7lHg9+c7g3br1+77/IBpwto1VBvyKUcHAlwCQ9sPB0qTlKSBbKyJPQb0WQgu2Qxl8jGo/XZFA9ms/8ne2sNZ1SrtxGjNvTTUmnppKCBTXvvHJq40otTS4+thxYkEY20KY5zpzWQoVEbZVLg15qrSpVniCVTE6zH48elHxFlKcNWLQh3GrqBUYOwz36KE/QOUJzbUKjuykc/HBrAdWQ8K9o6lfB5Ns5H4KxrQT3CbAmEZezJ8jNEwnupvycBTZlmEu4veo/QFBu47wVLknRVHw+SmWy1qx/XCK4ses59BZMGrZWp3Cu2ONDScbiGkhitSsfsfySXjg+serN1CytuFc/T4uRWKR2JIds43J7e+3Matn0kShX3VJtWAdiwNHc2KhoC2/ome/WKBTTrpWSQny70qxwWg4E6RvUmW1iYMj7CgEyrY1J8WzNk1DjuhMhKbgxq1Bax4W1CrxYfYcll9QibLp0UtjqYjVkVg2r09NqtWJTibrTQj1QGrTOVmAyTOs/j+nWkaVn2nbxMJ/NNC/swVg6CUruU8XZt1DuVyDAJ065g2MB0iC2eN29RFO0hYcOYxk5m0fNsVEAexXDcbCZbDcANG2hT+gGkPKsgrpR1jEnbwIZCniuQ/O5mhgFWxke5i3HzxwwbbWUTqo826t4sUrPx0mqzCVkg5Sg5dtJohkRK04/Bw8zBQZ1alaPyOVdDUNgp38q0jwh6LjGy3wjo/ILs5vbFJPI07lTDskbNDXUqZ7/BJtu/M/zcWWP8wIM5bZp6FZWUO217bFpjVVhrQZsrvU6hzbNB/KwYY6X6VYN92hT3idkS59TKpMjbfT3zFdF4U/AoBmWFFpNobJ7tSgtmRN1rqwAY1WtTzeb6rdikXNcrxDY2OysabBj2DJtKpixIbgu+MSqzaSQF9Sr5Si9lZFKxxAZDBDQ/S2nttMSmMKxVNds3c7FgyjbMpjhTMEzmG+yqFFvPlgiNsR4YlgU2cLg63Jz5zOeWy3G/pZtmpaHK1yvLVnq2rAfXQ8ueY2MRm3RXA5rfmusduw3V7i20tRz7UJSVvAndBEX2b9laFSKeja9tioMk4tBw009i/7ZwIzas86bBf59+x6a6bgU2v2H4ESIVHZbEbFez2nIM7U7PT7BBLNQ4Tm8O+YTZnFFDhsOHTBHbiRbw7DialOIZNkGzepBDdL9VrgObq1uwu++G5zgEuxfMd4TcPYZGfzaR3urTQu6NFhJ24E3fqPs4/d4HekO6OPqMHo19g3L9BFvsbkjJ0G+h3S9PfGkg1qSo/yIqj2E2BZcN0KCnUmz1o2y3BpuUnb2Dg/Xw1pw71xeNNira1Gk2FrPB7zkaGC4fTTV8mA1cHo+QXQU+J2TB37xR7aEEwf0+wa5/cmWvwUFm0J5ha9todeCtR9xN4j1xZ84k7ElTfE5CyhG3uAW4mhV24MBW1/Ns4hglENg04HvFNcNwrkS16kQjbr7IaF5QGzc9ep05NMVWe5lju8a5DcaIWiPdb+FocHUr5d1dykU2veGF8Q/ZmW7pCFs9zQZLibXWu1XVLWzUu6tbBEwa9e0TbFTcIAscXs/oCrAdltiuQHZ+NSr3ajsLGZ8v5FhxITRTEp98TbHpBuu1cLVGs20V28HybfS92yMW5dfN6SV45WjUqH6rxEb94dJL/2XBdB1SWfAn7bEdDhZuM6q37ebFM5kPdS5u/XJ2RpWBh1LQP9qfYaPXyIetvzmzarbmtFlt4GelflarPIOve9WuxroPe2IPN/kqZCKHTFRvGwtacQdguylNHg51JMjTNNtq9Gg31NTK160xtlAZHmOrMVsgYj69sIm0i95vZb42xFu2HpvrDZ7Qm5KYTSGhj055db69ifFGJ7BNGpXgtuAhtoMO1gFbZFcXDvl59H0k9FshGCreHeW0TcPe8kG91fNsNlQV2nXipCkLKa6aeL+F9LbUc8Z1YZmtrl/vE2hx3cIt6Yi/PcgWfGpZbzVE6BSaqlvBppVKcfJfsm0922FJb6A0yGti5tV1wjzb1AHt/6S3lw31m4SJl3aYLRnk537vXP43bC/166ZQp4qzbVjDQ4KLWxjExp/T26EXCwcn5pNS2VaniaU368spjiR8bU4rM/Wqd2axQhZ5nZkk+1K/bOn1J92+xPK60WBiu/ieuJGfLHNq66rL2GL+AYKxP3G39c8gAAAAAElFTkSuQmCC";
+/* Quantas horas a autorizacao do cliente vale (coluna VALIDO ATE da planilha). */
+window.HORAS_VALIDADE = 24;
+</script>
+
+<div id="telaConfig" class="hide">
+  <div class="login-card" style="max-width:520px">
+    <h1>Configuração pendente</h1>
+    <p class="sub">O arquivo <code>index.html</code> está sem os dados do Firebase.</p>
+    <div class="campo">
+      <label>Objeto firebaseConfig</label>
+      <textarea id="cfgTxt" rows="8"></textarea>
+    </div>
+    <div class="campo"><label>E-mail do administrador principal</label><input id="cfgAdmin" type="email"></div>
+    <div id="cfgErro" class="aviso aviso-erro hide"></div>
+    <button class="btn btn-primary btn-full" id="cfgSalvar">Salvar e abrir o painel</button>
+  </div>
+</div>
+
+<div id="telaCarregando" class="carregando"><div class="spin"></div><div>Carregando…</div></div>
+
+<!-- LOGIN -->
+<div id="telaLogin" class="hide">
+  <div class="login-card">
+    <img class="logo-mdv" id="logoLogin" alt="MDV">
+    <h1>Leads Manuais</h1>
+    <p class="sub"><span class="beta">versão beta</span><br>Entre com seu usuário e senha.</p>
+    <div id="loginAviso" class="aviso hide"></div>
+    <form id="formLogin">
+      <div class="campo">
+        <label for="liUsuario">Usuário</label>
+        <input id="liUsuario" type="text" autocomplete="username" required placeholder="seu primeiro nome">
+        <div class="dica">Administrador entra com o e-mail completo.</div>
+      </div>
+      <div class="campo">
+        <label for="liSenha">Senha</label>
+        <input id="liSenha" type="password" autocomplete="current-password" required>
+      </div>
+      <button class="btn btn-primary btn-full" id="liBtn" type="submit">Entrar</button>
+    </form>
+    <div style="margin-top:14px;text-align:center">
+      <button class="link-btn" id="liReset">Esqueci minha senha</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="telaApp" class="hide" style="flex:1;display:none;flex-direction:column">
+  <header class="top">
+    <div class="top-in">
+      <div class="marca"><img class="logo-mdv" id="logoTopo" alt="MDV"><span class="nm">Leads Manuais <span class="beta">beta</span></span></div>
+      <div class="top-sp"></div>
+      <div class="usr">
+        <div class="avatar" id="uAvatar">–</div>
+        <div><div class="usr-nome" id="uNome">–</div><div class="usr-perfil" id="uPerfil">–</div></div>
+      </div>
+      <button class="btn-top" id="btnSair">Sair</button>
+    </div>
+  </header>
+
+  <nav class="abas">
+    <div class="abas-in" id="navAbas">
+      <button class="aba on" data-p="leads">Leads</button>
+      <button class="aba" data-p="resumo">Resumo</button>
+      <button class="aba podeImportar" data-p="importar">Importar planilha <span class="bolha hide" id="bolhaPedidos">0</span></button>
+      <button class="aba soAdmin" data-p="usuarios">Usuários <span class="bolha hide" id="bolhaResets">0</span></button>
+    </div>
+  </nav>
+
+  <main>
+    <!-- ---------- LEADS ---------- -->
+    <section class="painel on" id="pLeads">
+      <div class="barra">
+        <div class="busca">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          <input id="fBusca" type="search" placeholder="Buscar por nome, CPF, telefone ou matrícula…">
+        </div>
+        <select class="sel" id="fLote" title="Lote / dia"></select>
+        <select class="sel" id="fStatus"><option value="">Todas as situações</option></select>
+        <select class="sel" id="fResp">
+          <option value="">Todos os responsáveis</option>
+          <option value="__meus">Somente meus leads</option>
+          <option value="__livres">Sem responsável</option>
+        </select>
+        <select class="sel" id="fOrdem">
+          <option value="quente">Mais quentes primeiro</option>
+          <option value="nome">Nome (A-Z)</option>
+          <option value="valorLiberado">Maior valor liberado</option>
+          <option value="status">Situação</option>
+        </select>
+        <button class="btn" id="btnPedirLeads">🙋 Pedir mais leads</button>
+        <button class="btn" id="btnExportar">⬇ Exportar</button>
+      </div>
+
+      <div class="kpis" id="kpis"></div>
+
+      <div class="quadro">
+        <div class="quadro-cab">
+          <h2 id="tituloLista">Leads</h2>
+          <span class="chip" id="chipQtd">0</span>
+          <div style="flex:1"></div>
+          <select class="sel btn-sm" id="fPorPag" style="padding:5px 8px">
+            <option value="50">50 por página</option>
+            <option value="100" selected>100 por página</option>
+            <option value="250">250 por página</option>
+            <option value="99999">Todos</option>
+          </select>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Cliente</th><th>Nasc. / Idade</th><th>Telefone</th><th>Autorização</th>
+                <th>Prazo</th><th>Parcela</th><th>Valor liberado</th>
+                <th>Situação</th><th>Banco</th><th>Responsável</th><th>Observação</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+        <div class="cards" id="cards"></div>
+        <div class="vazio hide" id="listaVazia"><div class="big">🗂️</div><div id="vazioTxt">Nenhum lead encontrado.</div></div>
+        <div class="paginar hide" id="paginar"></div>
+      </div>
+    </section>
+
+    <!-- ---------- RESUMO ---------- -->
+    <section class="painel" id="pResumo">
+      <div class="cx" id="cxExportVendas" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:220px">
+          <h2 style="margin:0">Exportar vendas</h2>
+          <p class="d" style="margin:2px 0 0">Planilha só com as vendas finalizadas do lote selecionado: cliente, banco, vendedor, valor e data.</p>
+        </div>
+        <button class="btn btn-primary" id="btnExportarVendas">⬇ Exportar vendas</button>
+      </div>
+      <div class="kpis" id="kpisResumo"></div>
+
+      <div class="cx">
+        <h2>Situação da carteira</h2>
+        <p class="d">Todos os leads do lote, por situação.</p>
+        <div class="graf" id="grafSituacoes"></div>
+      </div>
+
+      <div class="cx">
+        <h2>Por vendedor</h2>
+        <p class="d">Como está a carteira de cada pessoa, situação por situação. Passe o mouse para ver os números.</p>
+        <div class="legenda" id="legendaStatus"></div>
+        <div class="graf" id="grafVendedores"></div>
+      </div>
+      <div class="cx">
+        <h2>Desempenho por pessoa</h2>
+        <p class="d">Conta os leads em que cada pessoa é a responsável, no lote selecionado na aba Leads.</p>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Pessoa</th><th>Leads</th><th>1º contato</th><th>Simulação</th><th>Reprovado</th><th>Vendas</th><th>Conversão</th><th>Valor vendido</th></tr></thead>
+            <tbody id="tbodyResumo"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="cx">
+        <h2>Vendas por banco</h2>
+        <p class="d">Somente os leads com venda finalizada.</p>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Banco</th><th>Vendas</th><th>Valor liberado</th><th>Ticket médio</th></tr></thead>
+            <tbody id="tbodyBancos"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="cx">
+        <h2>Lotes importados</h2>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Lote</th><th>Leads</th><th>Importado em</th><th>Por</th><th></th></tr></thead>
+            <tbody id="tbodyLotes"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- IMPORTAR ---------- -->
+    <section class="painel" id="pImportar">
+      <div class="cx hide" id="cxPedidos" style="border-color:#fbe0ab;background:linear-gradient(180deg,#fffaf0,#fff)">
+        <h2>🙋 Pedidos de leads da equipe</h2>
+        <p class="d">Vendedores que ficaram sem lead para trabalhar.</p>
+        <div id="listaPedidos"></div>
+        <button class="btn btn-sm hide" id="btnAtivarAviso" style="margin-top:12px">🔔 Ativar aviso no computador</button>
+      </div>
+      <div class="cx">
+        <h2>Importar planilha de leads</h2>
+        <p class="d">Aceita <b>.csv</b>, <b>.xlsx</b> e <b>.xls</b>. Os leads ficam visíveis para toda a equipe na hora.</p>
+        <div class="solta" id="solta">
+          <div class="big">📄</div>
+          <div style="font-weight:600;margin-bottom:4px">Arraste a planilha aqui</div>
+          <div style="color:var(--text-2);font-size:12.5px;margin-bottom:14px">ou clique no botão abaixo</div>
+          <input type="file" id="arquivo" accept=".csv,.xlsx,.xls" class="hide">
+          <button class="btn btn-primary" id="btnEscolher">Escolher arquivo</button>
+        </div>
+      </div>
+      <div class="cx hide" id="cxMapa">
+        <h2>Confirmar colunas</h2>
+        <p class="d" id="mapaInfo"></p>
+        <div class="map-grid" id="mapaCampos"></div>
+        <div class="campo" style="margin-top:16px;max-width:320px"><label>Nome do lote</label><input id="loteNome" type="text"></div>
+        <div class="aviso aviso-info">Se o lote já existir, os leads novos entram e os que já estavam <b>mantêm a situação, o banco e o responsável</b>.</div>
+        <div class="prev-tbl" id="prevTbl"></div>
+        <div style="display:flex;gap:9px;margin-top:16px;flex-wrap:wrap">
+          <button class="btn btn-primary" id="btnImportar">Importar leads</button>
+          <button class="btn" id="btnCancelarImp">Cancelar</button>
+        </div>
+        <div class="hide" id="cxProg">
+          <div class="barra-prog"><i id="progBar" style="width:0%"></i></div>
+          <div style="font-size:12.5px;color:var(--text-2)" id="progTxt"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- USUÁRIOS ---------- -->
+    <section class="painel" id="pUsuarios">
+      <div class="cx hide" id="cxResets">
+        <h2>Pedidos de nova senha</h2>
+        <p class="d">A pessoa pediu redefinição na tela de login. Clique em enviar e ela recebe o link no e-mail dela.</p>
+        <div id="listaResets"></div>
+      </div>
+      <div class="cx">
+        <h2>Cadastrar pessoa da equipe</h2>
+        <p class="d">A pessoa entra digitando só o <b>primeiro nome</b> e a senha. O e-mail serve para ela receber o link caso esqueça a senha.</p>
+        <div class="map-grid">
+          <div class="campo"><label>Nome completo <span class="obrig">*</span></label><input id="nuNome" type="text" placeholder="Maria Silva"></div>
+          <div class="campo"><label>Usuário (primeiro nome) <span class="obrig">*</span></label><input id="nuLogin" type="text" placeholder="maria"><div class="dica">É o que ela digita para entrar. Sem espaços nem acentos.</div></div>
+          <div class="campo"><label>E-mail <span class="obrig">*</span></label><input id="nuEmail" type="email" placeholder="maria@empresa.com"></div>
+          <div class="campo"><label>Senha provisória <span class="obrig">*</span></label><input id="nuSenha" type="text" placeholder="mínimo 6 caracteres"></div>
+          <div class="campo"><label>Perfil</label>
+            <select id="nuPerfil">
+              <option value="vendedor">Vendedor — atualiza a situação dos leads</option>
+              <option value="importador">Importador — importa as planilhas e acompanha</option>
+              <option value="gestor">Gestor — só acompanha, não altera nada</option>
+              <option value="admin">Administrador — faz tudo e gerencia usuários</option>
+            </select>
+          </div>
+        </div>
+        <div id="nuAviso" class="aviso hide"></div>
+        <button class="btn btn-primary" id="btnCriarUsr">Cadastrar</button>
+      </div>
+      <div class="quadro">
+        <div class="quadro-cab"><h2>Equipe</h2><span class="chip" id="chipUsrs">0</span></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Nome</th><th>Usuário</th><th>E-mail</th><th>Perfil</th><th>Situação</th><th></th></tr></thead>
+            <tbody id="tbodyUsrs"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="rodape">
+    Sistema desenvolvido por <b>Alberson Junior</b>
+  </footer>
+</div>
+
+<div id="modalHost"></div>
+<div class="dica-graf" id="dicaGraf"></div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
+  createUserWithEmailAndPassword, sendPasswordResetEmail, setPersistence, browserLocalPersistence
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection,
+  onSnapshot, query, orderBy, writeBatch, serverTimestamp, getDocs, arrayUnion
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const LS_CFG="painelVendas.cfg";
+const el=id=>document.getElementById(id);
+const show=(id,v=true)=>el(id).classList.toggle("hide",!v);
+const cfgValida=c=>c&&typeof c.apiKey==="string"&&c.apiKey&&!c.apiKey.includes("COLE_AQUI");
+
+let CFG=window.FIREBASE_CONFIG;
+let ADMIN_MASTER=(window.ADMIN_MASTER||"").toLowerCase().trim();
+const HORAS_VALIDADE=Number(window.HORAS_VALIDADE)||24;
+if(!cfgValida(CFG)){
+  try{ const s=JSON.parse(localStorage.getItem(LS_CFG)||"null");
+    if(s&&cfgValida(s.cfg)){ CFG=s.cfg; ADMIN_MASTER=(s.admin||"").toLowerCase().trim(); } }catch(e){}
+}
+if(ADMIN_MASTER.includes("exemplo.com")) ADMIN_MASTER="";
+
+/* logo embutida */
+if(window.LOGO_MDV && !window.LOGO_MDV.includes("__LOGO")){
+  ["logoLogin","logoTopo"].forEach(i=>{ const n=el(i); if(n) n.src=window.LOGO_MDV; });
+}
+
+if(!cfgValida(CFG)){
+  show("telaCarregando",false); show("telaConfig",true);
+  el("cfgSalvar").onclick=()=>{
+    try{
+      let t=el("cfgTxt").value.trim().replace(/^const\s+firebaseConfig\s*=\s*/,"").replace(/;?\s*$/,"");
+      const obj=(new Function("return ("+t+")"))();
+      if(!cfgValida(obj)) throw new Error("Falta a apiKey.");
+      localStorage.setItem(LS_CFG,JSON.stringify({cfg:obj,admin:el("cfgAdmin").value.trim()}));
+      location.reload();
+    }catch(e){ el("cfgErro").textContent="Não consegui ler esse texto: "+e.message; show("cfgErro",true); }
+  };
+  throw new Error("config-pendente");
+}
+
+const app=initializeApp(CFG), auth=getAuth(app), db=getFirestore(app);
+await setPersistence(auth,browserLocalPersistence).catch(()=>{});
+
+/* ===================== CONSTANTES ===================== */
+const STATUS={
+  NOVO:      {rot:"Novo / sem contato",  cor:"var(--novo)"},
+  CONTATO:   {rot:"1º contato realizado", cor:"var(--contato)"},
+  SIMULACAO: {rot:"Simulação enviada",    cor:"var(--nego)", exigeBanco:true},
+  REPROVADO: {rot:"Reprovado",            cor:"var(--cancel)", exigeMotivo:true},
+  VENDA:     {rot:"Venda finalizada",     cor:"var(--venda)", exigeBanco:true}
+};
+const ORDEM_ST=["NOVO","CONTATO","SIMULACAO","REPROVADO","VENDA"];
+const PERFIS={
+  admin:      {rot:"Administrador", importa:true,  altera:true,  usuarios:true,  exporta:true,  exportaVendas:true,  pede:false},
+  importador: {rot:"Importador",    importa:true,  altera:false, usuarios:false, exporta:true,  exportaVendas:false, pede:false},
+  vendedor:   {rot:"Vendedor(a)",   importa:false, altera:true,  usuarios:false, exporta:false, exportaVendas:false, pede:true},
+  gestor:     {rot:"Gestor(a)",     importa:false, altera:false, usuarios:false, exporta:true,  exportaVendas:true,  pede:false}
+};
+/* quantas horas sem mexer na situação até o lead virar "parado" */
+const HORAS_PARADO=3;
+const CAMPOS=[
+  {k:"nome",          rot:"Nome do cliente",   obrig:true,  alvos:["nome","cliente","nome do cliente"]},
+  {k:"cpf",           rot:"CPF",               obrig:true,  alvos:["cpf","documento"]},
+  {k:"nascimento",    rot:"Data de nascimento",obrig:false, alvos:["data nascimento","data de nascimento","nascimento","dt nascimento"]},
+  {k:"telefone",      rot:"Telefone",          obrig:true,  alvos:["telefone hot","telefone","celular","fone"]},
+  {k:"matricula",     rot:"Matrícula",         obrig:false, alvos:["matricula","matrícula","beneficio","benefício"]},
+  {k:"prazo",         rot:"Prazo",             obrig:false, alvos:["prazo","parcelas"]},
+  {k:"parcela",       rot:"Parcela",           obrig:false, alvos:["parcela","valor parcela"]},
+  {k:"valorLiberado", rot:"Valor liberado",    obrig:false, alvos:["valor liberado","liberado","valor"]},
+  {k:"validoAte",     rot:"Válido até",        obrig:false, alvos:["valido ate","válido até","validade","expira em"]},
+  {k:"whatsapp",      rot:"Possui WhatsApp",   obrig:false, alvos:["possui whatsapp","whatsapp","zap"]}
+];
+
+/* ===================== ESTADO ===================== */
+const S={ user:null, perfil:null, pode:PERFIS.vendedor, lotes:[], loteAtual:null, leads:[],
+  usuarios:[], resets:[], pedidos:[], filtro:{busca:"",status:"",resp:"",marca:""}, ordem:"quente",
+  pag:1, porPag:100, unsubLeads:null, unsubLotes:null, unsubUsrs:null, unsubResets:null,
+  unsubPedidos:null, imp:null, tituloBase:document.title, piscando:null, avisoOk:false };
+
+/* ===================== UTIL ===================== */
+const norm=s=>(s??"").toString().trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+const soDig=s=>(s??"").toString().replace(/\D/g,"");
+const fmtMoeda=n=>(Number(n)||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const fmtNum=n=>(Number(n)||0).toLocaleString("pt-BR");
+const esc=s=>(s??"").toString().replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+function fmtCPF(c){const d=soDig(c);return d.length===11?`${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`:(c||"—");}
+function fmtTel(t){const d=soDig(t);
+  if(d.length===11) return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+  if(d.length===10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+  return t||"—";}
+function zapLink(t){let d=soDig(t); if(!d) return null; if(!d.startsWith("55")) d="55"+d; return "https://wa.me/"+d;}
+function dataHora(ts){ if(!ts) return "—";
+  const d=ts.toDate?ts.toDate():new Date(ts); if(isNaN(d)) return "—";
+  return d.toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"});}
+function soData(iso){ if(!iso) return "—"; const d=new Date(iso); if(isNaN(d)) return "—";
+  return d.toLocaleDateString("pt-BR");}
+function soHora(iso){ if(!iso) return "—"; const d=new Date(iso); if(isNaN(d)) return "—";
+  return d.toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});}
+function idade(iso){ if(!iso) return null; const n=new Date(iso); if(isNaN(n)) return null;
+  const h=new Date(); let a=h.getFullYear()-n.getFullYear();
+  const m=h.getMonth()-n.getMonth();
+  if(m<0||(m===0&&h.getDate()<n.getDate())) a--;
+  return a>=0&&a<120?a:null;}
+function hoje(){const d=new Date(),p=n=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;}
+function numBR(v){ if(v===null||v===undefined||v==="") return 0;
+  if(typeof v==="number") return v;
+  let s=v.toString().trim().replace(/[R$\s]/g,"");
+  if(s.includes(",")&&s.includes(".")) s=s.replace(/\./g,"").replace(",",".");
+  else if(s.includes(",")) s=s.replace(",",".");
+  const n=parseFloat(s); return isNaN(n)?0:n;}
+function limpaCelula(v){ if(v===null||v===undefined) return "";
+  let s=v.toString().trim();
+  if(s.startsWith("=")) s=s.slice(1).trim();
+  return s.replace(/^"+|"+$/g,"").replace(/^""|""$/g,"").trim();}
+/* serial do Excel (ou data normal) -> ISO.
+   O serial vem no fuso local da planilha (Brasília), por isso montamos
+   a data em horário local e não em UTC. */
+function paraISO(v){
+  if(v===null||v===undefined||v==="") return null;
+  if(v instanceof Date && !isNaN(v)) return v.toISOString();
+  const s=v.toString().trim();
+  if(/^\d+([.,]\d+)?$/.test(s)){
+    const n=parseFloat(s.replace(",","."));
+    if(n>1&&n<80000){
+      const base=Date.UTC(1899,11,30)+Math.round(n*86400000);
+      const u=new Date(base);
+      return new Date(u.getUTCFullYear(),u.getUTCMonth(),u.getUTCDate(),
+                      u.getUTCHours(),u.getUTCMinutes(),u.getUTCSeconds()).toISOString();
+    }
+  }
+  let m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:[ T](\d{1,2}):(\d{2}))?/);
+  if(m){ let a=+m[3]; if(a<100) a+=a<50?2000:1900;
+    return new Date(a,+m[2]-1,+m[1],+(m[4]||0),+(m[5]||0)).toISOString(); }
+  m=s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);
+  if(m) return new Date(+m[1],+m[2]-1,+m[3],+(m[4]||0),+(m[5]||0)).toISOString();
+  const d=new Date(s); return isNaN(d)?null:d.toISOString();
+}
+/* momento em que o cliente autorizou = validade - janela */
+function autorizadoEm(l){
+  if(!l.validoAte) return null;
+  const t=new Date(l.validoAte).getTime();
+  if(isNaN(t)) return null;
+  return new Date(t-HORAS_VALIDADE*3600000).toISOString();
+}
+async function copiar(txt,msg){  try{ await navigator.clipboard.writeText(txt); }
+  catch(e){
+    const a=document.createElement("textarea");
+    a.value=txt; a.style.position="fixed"; a.style.opacity="0";
+    document.body.appendChild(a); a.select();
+    try{ document.execCommand("copy"); }catch(_){}
+    document.body.removeChild(a);
+  }
+  toast(msg||"Copiado.");
+}
+/* há quantas horas o lead está parado: só vale para quem continua
+   como veio da importação, ou seja, sem contato nenhum */
+function paradoHa(l){
+  if((l.status||"NOVO")!=="NOVO") return null;
+  const base=l.atualizadoEm||l.criadoEm;
+  if(!base) return null;
+  const d=base.toDate?base.toDate():new Date(base);
+  if(isNaN(d)) return null;
+  const h=(Date.now()-d.getTime())/3600000;
+  return h>=HORAS_PARADO?Math.floor(h):null;
+}
+let toastT;
+function toast(msg){const t=el("toast");t.textContent=msg;t.classList.add("on");
+  clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("on"),3200);}
+function modal({titulo,corpo,pe,largura}){
+  const host=el("modalHost");
+  host.innerHTML=`<div class="fundo" id="mFundo"><div class="modal" ${largura?`style="max-width:${largura}"`:""}>
+    <div class="modal-cab"><h3>${titulo}</h3><button class="x" id="mX">&times;</button></div>
+    <div class="modal-corpo">${corpo}</div>${pe?`<div class="modal-pe">${pe}</div>`:""}</div></div>`;
+  const fechar=()=>host.innerHTML="";
+  el("mX").onclick=fechar;
+  el("mFundo").onclick=e=>{ if(e.target.id==="mFundo") fechar(); };
+  return fechar;
+}
+const errosAuth={
+  "auth/invalid-credential":"Usuário ou senha incorretos.",
+  "auth/invalid-login-credentials":"Usuário ou senha incorretos.",
+  "auth/wrong-password":"Senha incorreta.",
+  "auth/user-not-found":"Esse usuário não existe.",
+  "auth/invalid-email":"E-mail inválido.",
+  "auth/too-many-requests":"Muitas tentativas. Aguarde alguns minutos.",
+  "auth/email-already-in-use":"Esse e-mail já está cadastrado.",
+  "auth/weak-password":"A senha precisa ter no mínimo 6 caracteres.",
+  "auth/network-request-failed":"Sem conexão com a internet.",
+  "auth/user-disabled":"Essa conta foi desativada.",
+  "permission-denied":"Seu usuário não tem permissão para isso."
+};
+const msgErro=e=>errosAuth[e?.code]||e?.message||"Erro inesperado.";
+
+/* ===================== LOGIN ===================== */
+async function emailDoUsuario(entrada){
+  const t=entrada.trim();
+  if(t.includes("@")) return t;
+  const snap=await getDoc(doc(db,"logins",norm(t)));
+  if(!snap.exists()) { const e=new Error("x"); e.code="auth/user-not-found"; throw e; }
+  return snap.data().email;
+}
+el("formLogin").onsubmit=async e=>{
+  e.preventDefault();
+  const b=el("liBtn"); b.disabled=true; b.textContent="Entrando…"; show("loginAviso",false);
+  try{
+    const mail=await emailDoUsuario(el("liUsuario").value);
+    await signInWithEmailAndPassword(auth,mail,el("liSenha").value);
+  }catch(err){
+    el("loginAviso").className="aviso aviso-erro";
+    el("loginAviso").textContent=msgErro(err); show("loginAviso",true);
+  }finally{ b.disabled=false; b.textContent="Entrar"; }
+};
+el("liReset").onclick=async()=>{
+  const entrada=el("liUsuario").value.trim();
+  const av=el("loginAviso");
+  if(!entrada){ av.className="aviso aviso-info";
+    av.textContent="Digite seu usuário no campo acima e clique de novo."; show("loginAviso",true); return; }
+  try{
+    const mail=await emailDoUsuario(entrada);
+    await sendPasswordResetEmail(auth,mail);
+    await setDoc(doc(db,"resets",norm(entrada)+"-"+Date.now()),{
+      usuario:entrada, email:mail, quando:serverTimestamp(), atendido:false
+    }).catch(()=>{});
+    av.className="aviso aviso-ok";
+    av.innerHTML=`Enviamos o link de nova senha para o seu e-mail. O administrador também foi avisado.`;
+  }catch(err){
+    av.className="aviso aviso-erro";
+    av.textContent = err.code==="auth/user-not-found"
+      ? "Não achei esse usuário. Confira com o administrador."
+      : msgErro(err);
+  }
+  show("loginAviso",true);
+};
+el("btnSair").onclick=async()=>{ desligar(); await signOut(auth); };
+
+function desligar(){
+  ["unsubLeads","unsubLotes","unsubUsrs","unsubResets","unsubPedidos"].forEach(k=>{ if(S[k]){S[k]();S[k]=null;} });
+  if(S.relogio){ clearInterval(S.relogio); S.relogio=null; }
+  piscarTitulo(0);
+  S.leads=[];S.lotes=[];S.usuarios=[];S.resets=[];S.pedidos=[];S.loteAtual=null;
+}
+
+onAuthStateChanged(auth,async u=>{
+  show("telaCarregando",true); show("telaLogin",false);
+  el("telaApp").style.display="none"; el("telaApp").classList.add("hide");
+  if(!u){ desligar(); show("telaCarregando",false); show("telaLogin",true); return; }
+  S.user=u;
+  try{
+    const ref=doc(db,"usuarios",u.uid);
+    let snap=await getDoc(ref);
+    if(!snap.exists()){
+      if(ADMIN_MASTER&&(u.email||"").toLowerCase()===ADMIN_MASTER){
+        const apelido=u.email.split("@")[0].replace(/[._-]+/g," ").replace(/\b\p{L}/gu,m=>m.toUpperCase()).trim();
+        await setDoc(ref,{nome:apelido,login:norm(apelido.split(" ")[0]),email:u.email,
+          perfil:"admin",ativo:true,criadoEm:serverTimestamp()});
+        await setDoc(doc(db,"logins",norm(apelido.split(" ")[0])),{email:u.email,uid:u.uid}).catch(()=>{});
+        snap=await getDoc(ref);
+      }else throw new Error("sem-perfil");
+    }
+    const p=snap.data();
+    if(p.ativo===false) throw new Error("inativo");
+    S.perfil=p; S.pode=PERFIS[p.perfil]||PERFIS.vendedor;
+  }catch(err){
+    await signOut(auth);
+    el("loginAviso").className="aviso aviso-erro";
+    el("loginAviso").textContent=err.message==="inativo"
+      ? "Seu acesso foi desativado. Fale com o administrador."
+      : "Seu usuário ainda não foi liberado no painel. Peça para o administrador cadastrar você.";
+    show("telaCarregando",false); show("telaLogin",true); show("loginAviso",true);
+    return;
+  }
+  el("uNome").textContent=S.perfil.nome||S.user.email;
+  el("uPerfil").textContent=S.pode.rot;
+  el("uAvatar").textContent=(S.perfil.nome||S.user.email||"?").trim()[0].toUpperCase();
+  document.querySelectorAll(".soAdmin").forEach(e2=>e2.classList.toggle("hide",!S.pode.usuarios));
+  document.querySelectorAll(".podeImportar").forEach(e2=>e2.classList.toggle("hide",!S.pode.importa));
+  show("btnExportar",S.pode.exporta);
+  show("cxExportVendas",S.pode.exportaVendas);
+  show("btnPedirLeads",S.pode.pede);
+  el("fStatus").innerHTML=`<option value="">Todas as situações</option>`+
+    ORDEM_ST.map(s=>`<option value="${s}">${STATUS[s].rot}</option>`).join("");
+  irParaAba("leads");
+  show("telaCarregando",false);
+  el("telaApp").classList.remove("hide"); el("telaApp").style.display="flex";
+  ouvirLotes();
+  if(S.pode.importa){ ouvirPedidos(); show("btnAtivarAviso",!S.avisoOk&&"Notification" in window); }
+  if(S.pode.usuarios){ ouvirUsuarios(); ouvirResets(); }
+  if(S.relogio) clearInterval(S.relogio);
+  S.relogio=setInterval(()=>{ if(S.leads.length&&el("pLeads").classList.contains("on")) pintar(); },60000);
+});
+
+/* ===================== ABAS ===================== */
+function irParaAba(p){
+  document.querySelectorAll(".aba").forEach(x=>x.classList.toggle("on",x.dataset.p===p));
+  ["leads","resumo","importar","usuarios"].forEach(n=>
+    el("p"+n[0].toUpperCase()+n.slice(1)).classList.toggle("on",n===p));
+  if(p==="resumo") pintarResumo();
+}
+el("navAbas").onclick=e=>{ const b=e.target.closest(".aba"); if(b) irParaAba(b.dataset.p); };
+
+/* ===================== LOTES ===================== */
+function ouvirLotes(){
+  S.unsubLotes=onSnapshot(query(collection(db,"lotes"),orderBy("data","desc")),snap=>{
+    S.lotes=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const sel=el("fLote"), antes=S.loteAtual;
+    sel.innerHTML=S.lotes.length
+      ? S.lotes.map(l=>`<option value="${l.id}">${esc(l.nome||l.id)} · ${fmtNum(l.total||0)} leads</option>`).join("")
+      : `<option value="">Nenhum lote importado</option>`;
+    if(S.lotes.length){
+      S.loteAtual=(antes&&S.lotes.some(l=>l.id===antes))?antes:S.lotes[0].id;
+      sel.value=S.loteAtual;
+      if(S.loteAtual!==antes) ouvirLeads(S.loteAtual);
+    }else{ S.loteAtual=null; S.leads=[]; pintar(); }
+    pintarLotes();
+  },err=>toast("Erro ao carregar lotes: "+msgErro(err)));
+}
+el("fLote").onchange=e=>{ S.loteAtual=e.target.value; S.pag=1; ouvirLeads(S.loteAtual); };
+
+function ouvirLeads(loteId){
+  if(S.unsubLeads){ S.unsubLeads(); S.unsubLeads=null; }
+  if(!loteId){ S.leads=[]; pintar(); return; }
+  S.unsubLeads=onSnapshot(query(collection(db,"lotes",loteId,"leads"),orderBy("nome")),snap=>{
+    S.leads=snap.docs.map(d=>({id:d.id,...d.data()}));
+    pintar();
+    if(el("pResumo").classList.contains("on")) pintarResumo();
+  },err=>toast("Erro ao carregar leads: "+msgErro(err)));
+}
+
+/* ===================== FILTROS ===================== */
+el("fBusca").oninput=e=>{S.filtro.busca=norm(e.target.value);S.pag=1;pintar();};
+el("fStatus").onchange=e=>{S.filtro.status=e.target.value;S.filtro.marca="";S.pag=1;pintar();};
+el("fResp").onchange=e=>{S.filtro.resp=e.target.value;S.pag=1;pintar();};
+el("fOrdem").onchange=e=>{S.ordem=e.target.value;S.pag=1;pintar();};
+el("fPorPag").onchange=e=>{S.porPag=+e.target.value;S.pag=1;pintar();};
+
+function filtrados(){
+  const f=S.filtro;
+  let r=S.leads.filter(l=>{
+    if(f.status&&(l.status||"NOVO")!==f.status) return false;
+    if(f.marca==="quente"&&!QUENTES.has(l.id)) return false;
+    if(f.marca==="parado"&&paradoHa(l)===null) return false;
+    if(f.resp==="__meus"&&l.respUid!==S.user.uid) return false;
+    if(f.resp==="__livres"&&l.respUid) return false;
+    if(f.resp&&!f.resp.startsWith("__")&&l.respUid!==f.resp) return false;
+    if(f.busca){
+      const alvo=norm(l.nome)+" "+soDig(l.cpf)+" "+soDig(l.telefone)+" "+norm(l.matricula);
+      if(!alvo.includes(f.busca)&&!alvo.includes(soDig(f.busca)||"\u0000")) return false;
+    }
+    return true;
+  });
+  const o=S.ordem;
+  r.sort((a,b)=>{
+    if(o==="quente"){
+      const x=a.validoAte?new Date(a.validoAte).getTime():0;
+      const y=b.validoAte?new Date(b.validoAte).getTime():0;
+      return y-x || norm(a.nome).localeCompare(norm(b.nome),"pt-BR");
+    }
+    if(o==="valorLiberado") return (Number(b.valorLiberado)||0)-(Number(a.valorLiberado)||0);
+    if(o==="status") return ORDEM_ST.indexOf(a.status||"NOVO")-ORDEM_ST.indexOf(b.status||"NOVO")
+      || norm(a.nome).localeCompare(norm(b.nome),"pt-BR");
+    return norm(a.nome).localeCompare(norm(b.nome),"pt-BR");
+  });
+  return r;
+}
+/* os 15% com autorizacao mais recente, ainda validos */
+function marcarQuentes(lista){
+  const comData=S.leads.filter(l=>l.validoAte).map(l=>new Date(l.validoAte).getTime()).sort((a,b)=>b-a);
+  if(!comData.length) return new Set();
+  const corte=comData[Math.max(0,Math.min(comData.length-1,Math.floor(comData.length*0.15)))];
+  const q=new Set();
+  S.leads.forEach(l=>{
+    if(!l.validoAte) return;
+    const t=new Date(l.validoAte).getTime();
+    if(t>=corte&&t>Date.now()&&(l.status||"NOVO")==="NOVO") q.add(l.id);
+  });
+  return q;
+}
+
+/* ===================== LISTA ===================== */
+let QUENTES=new Set();
+function pintar(){
+  QUENTES=marcarQuentes();
+  pintarKpis();
+  const lista=filtrados();
+  el("chipQtd").textContent=fmtNum(lista.length)+(lista.length===1?" lead":" leads");
+  const lote=S.lotes.find(l=>l.id===S.loteAtual);
+  el("tituloLista").textContent=lote?"Leads · "+(lote.nome||lote.id):"Leads";
+
+  const total=lista.length,pp=S.porPag,nPg=Math.max(1,Math.ceil(total/pp));
+  if(S.pag>nPg) S.pag=nPg;
+  const pagina=lista.slice((S.pag-1)*pp,S.pag*pp);
+
+  show("listaVazia",total===0);
+  el("vazioTxt").textContent=S.leads.length===0
+    ? (S.pode.importa?"Nenhum lead nesse lote. Use a aba “Importar planilha”.":"Nenhum lead disponível ainda. Aguarde o envio da lista de hoje.")
+    : (S.filtro.marca==="quente"?"Nenhum lead quente agora."
+      :S.filtro.marca==="parado"?`Nenhum lead sem contato há mais de ${HORAS_PARADO}h. Carteira em dia.`
+      :"Nenhum lead com esses filtros.");
+
+  el("tbody").innerHTML=pagina.map(linha).join("");
+  el("cards").innerHTML=pagina.map(cartao).join("");
+
+  show("paginar",nPg>1);
+  if(nPg>1) el("paginar").innerHTML=
+    `<button class="btn btn-sm" data-pg="${S.pag-1}" ${S.pag===1?"disabled":""}>‹ Anterior</button>
+     <span>Página <b>${S.pag}</b> de ${nPg} · ${fmtNum(total)} leads</span>
+     <button class="btn btn-sm" data-pg="${S.pag+1}" ${S.pag===nPg?"disabled":""}>Próxima ›</button>`;
+}
+el("paginar").onclick=e=>{
+  const b=e.target.closest("[data-pg]"); if(!b||b.disabled) return;
+  S.pag=+b.dataset.pg; pintar(); window.scrollTo({top:0,behavior:"smooth"});
+};
+
+function selStatus(l){
+  if(!S.pode.altera) return `<span class="tag t-${l.status||"NOVO"}">${STATUS[l.status||"NOVO"].rot}</span>`;
+  return `<select class="st t-${l.status||"NOVO"}" data-st="${l.id}">`+
+    ORDEM_ST.map(s=>`<option value="${s}" ${(l.status||"NOVO")===s?"selected":""}>${STATUS[s].rot}</option>`).join("")+
+    `</select>`;
+}
+function botoesContato(l){
+  const z=zapLink(l.telefone);
+  return `<button class="ico" data-copiatel="${soDig(l.telefone)}" title="Copiar telefone">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+    </button>`+
+    (z?`<a class="ico zap" href="${z}" target="_blank" rel="noopener" title="WhatsApp" data-zap="${l.id}">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.1-.7.1-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-1.6-.8-2.8-2-3.4-3.4-.1-.2 0-.4.1-.5.2-.2.5-.6.7-.8.1-.2.2-.4.1-.6-.1-.3-.7-1.8-1-2.2-.2-.4-.5-.3-.7-.3h-.6c-.2 0-.5.1-.8.4-.9.9-1.1 2-.7 3.3.5 1.5 1.6 3 2.7 4.1 1.4 1.4 3.2 2.3 4.6 2.4 1 .1 1.9-.2 2.5-.9.3-.3.4-.7.4-1v-.4c0-.1-.1-.2-.1-.2z"/><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2z"/></svg></a>`:"");
+}
+function selos(l){
+  let s=QUENTES.has(l.id)?`<span class="selo-quente">🔥 quente</span>`:"";
+  const ph=paradoHa(l);
+  if(ph!==null) s+=`<span class="selo-parado" title="Importado há ${ph}h e ninguém fez contato">⏳ sem contato há ${ph}h</span>`;
+  return s;
+}
+function linha(l){
+  const st=l.status||"NOVO", a=autorizadoEm(l), id=idade(l.nascimento), ph=paradoHa(l);
+  return `<tr class="${QUENTES.has(l.id)?"quente":""} ${ph!==null?"parado":""}">
+    <td><div class="nome-cel">${esc(l.nome)} ${selos(l)}</div><div class="cpf mono">${fmtCPF(l.cpf)}</div></td>
+    <td class="mono">${soData(l.nascimento)}${id!==null?`<div style="color:var(--text-3);font-size:11.5px">${id} anos</div>`:""}</td>
+    <td class="mono tel-cel">${fmtTel(l.telefone)}${l.whatsapp?' <span style="color:#15803d" title="Possui WhatsApp">●</span>':""}</td>
+    <td class="mono nowrap" style="font-size:12px">${a?soHora(a):"—"}</td>
+    <td class="mono">${l.prazo?l.prazo+"x":"—"}</td>
+    <td class="mono">${l.parcela?fmtMoeda(l.parcela):"—"}</td>
+    <td class="mono dinheiro">${l.valorLiberado?fmtMoeda(l.valorLiberado):"—"}</td>
+    <td>${selStatus(l)}</td>
+    <td class="banco-cel">${esc(l.banco||"")||'<span style="color:var(--text-3)">—</span>'}</td>
+    <td class="resp">${l.respNome?`<b>${esc(l.respNome)}</b><br><span style="color:var(--text-3);font-size:11px">${dataHora(l.atualizadoEm)}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
+    <td><div class="obs-prev" title="${esc(l.obs||"")}">${esc(l.obs||"")||'<span style="color:var(--text-3)">—</span>'}</div></td>
+    <td><div class="acoes">${botoesContato(l)}
+      <button class="ico" data-ver="${l.id}" title="Abrir ficha">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+      </button></div></td>
+  </tr>`;
+}
+function cartao(l){
+  const st=l.status||"NOVO", a=autorizadoEm(l), id=idade(l.nascimento), ph=paradoHa(l);
+  return `<div class="card ${QUENTES.has(l.id)?"quente":""} ${ph!==null?"parado":""}">
+    <div class="card-top">
+      <div class="nm">${esc(l.nome)} ${selos(l)}<div class="cpf mono" style="font-weight:400">${fmtCPF(l.cpf)}${id!==null?" · "+id+" anos":""}</div></div>
+      <span class="tag t-${st}">${STATUS[st].rot}</span>
+    </div>
+    <div class="card-meta">
+      <span class="mono">📱 ${fmtTel(l.telefone)}</span>
+      ${l.valorLiberado?`<span class="mono"><b>${fmtMoeda(l.valorLiberado)}</b></span>`:""}
+      ${l.prazo?`<span class="mono">${l.prazo}x ${l.parcela?fmtMoeda(l.parcela):""}</span>`:""}
+      ${a?`<span class="mono">🕒 ${soHora(a)}</span>`:""}
+      ${l.banco?`<span>🏦 ${esc(l.banco)}</span>`:""}
+    </div>
+    ${l.respNome?`<div class="resp" style="margin-bottom:9px">Responsável: <b>${esc(l.respNome)}</b> · ${dataHora(l.atualizadoEm)}</div>`:""}
+    ${l.obs?`<div class="obs-prev" style="max-width:none;white-space:normal;margin-bottom:9px">📝 ${esc(l.obs)}</div>`:""}
+    <div class="card-acoes">${selStatus(l)}${botoesContato(l)}
+      <button class="ico" data-ver="${l.id}" title="Abrir ficha">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+      </button></div>
+  </div>`;
+}
+
+document.addEventListener("change",e=>{
+  const s=e.target.closest("select[data-st]"); if(!s) return;
+  pedirStatus(s.dataset.st,s.value);
+});
+document.addEventListener("click",e=>{
+  const c=e.target.closest("[data-copiatel]");
+  if(c){ copiar(c.getAttribute("data-copiatel"),"Telefone copiado."); return; }
+  const v=e.target.closest("[data-ver]"); if(v){ abrirFicha(v.dataset.ver); return; }
+  const z=e.target.closest("[data-zap]");
+  if(z){ const l=S.leads.find(x=>x.id===z.dataset.zap);
+    if(l&&(l.status||"NOVO")==="NOVO"&&S.pode.altera) gravarStatus(l,"CONTATO",{},{silencioso:true}); }
+});
+
+/* ===================== MUDAR SITUAÇÃO ===================== */
+function pedirStatus(id,novo){
+  const l=S.leads.find(x=>x.id===id); if(!l) return;
+  const antes=l.status||"NOVO";
+  if(antes===novo) return;
+  const cfg=STATUS[novo];
+  if(!cfg.exigeBanco&&!cfg.exigeMotivo){ gravarStatus(l,novo,{}); return; }
+
+  const corpo=
+    `<p style="margin:0 0 16px;color:var(--text-2)">Cliente <b>${esc(l.nome)}</b> → <span class="tag t-${novo}">${cfg.rot}</span></p>`+
+    (cfg.exigeBanco?`<div class="campo"><label>Qual banco? <span class="obrig">*</span></label>
+       <input id="mdBanco" type="text" list="listaBancos" value="${esc(l.banco||"")}" placeholder="digite o nome do banco">
+       <datalist id="listaBancos">${bancosUsados().map(b=>`<option value="${esc(b)}">`).join("")}</datalist>
+       <div class="dica">Campo obrigatório. Se já usou antes, aparece na sugestão.</div></div>`:"")+
+    (cfg.exigeMotivo?`<div class="campo"><label>Motivo da reprovação <span class="obrig">*</span></label>
+       <textarea id="mdObs" rows="3" placeholder="ex: margem insuficiente">${esc(l.obs||"")}</textarea>
+       <div class="dica">Campo obrigatório. Vai para a observação do lead.</div></div>`:"")+
+    `<div id="mdErro" class="aviso aviso-erro hide"></div>`;
+  const fechar=modal({titulo:cfg.rot,corpo,
+    pe:`<button class="btn" id="mdNao">Cancelar</button><button class="btn btn-primary" id="mdSim">Salvar</button>`});
+  const cancelar=()=>{ fechar(); pintar(); };
+  el("mdNao").onclick=cancelar;
+  el("mFundo").onclick=ev=>{ if(ev.target.id==="mFundo") cancelar(); };
+  el("mX").onclick=cancelar;
+  setTimeout(()=>{ const f=el("mdBanco")||el("mdObs"); if(f) f.focus(); },60);
+  el("mdSim").onclick=async()=>{
+    const extra={};
+    if(cfg.exigeBanco){
+      const b=(el("mdBanco").value||"").trim();
+      if(!b){ el("mdErro").textContent="Informe o banco para continuar."; show("mdErro",true); return; }
+      extra.banco=b;
+    }
+    if(cfg.exigeMotivo){
+      const o=(el("mdObs").value||"").trim();
+      if(o.length<3){ el("mdErro").textContent="Escreva o motivo da reprovação."; show("mdErro",true); return; }
+      extra.obs=o;
+    }
+    el("mdSim").disabled=true;
+    await gravarStatus(l,novo,extra);
+    fechar();
+  };
+}
+function bancosUsados(){
+  const s=new Set(); S.leads.forEach(l=>{ if(l.banco) s.add(l.banco); });
+  return [...s].sort((a,b)=>a.localeCompare(b,"pt-BR"));
+}
+async function gravarStatus(l,novo,extra={},opt={}){
+  const antes=l.status||"NOVO";
+  try{
+    await updateDoc(doc(db,"lotes",S.loteAtual,"leads",l.id),{
+      status:novo, ...extra,
+      respUid:S.user.uid, respNome:S.perfil.nome||S.user.email,
+      atualizadoEm:serverTimestamp(),
+      historico:arrayUnion({quando:new Date().toISOString(),de:antes,para:novo,
+        quem:S.perfil.nome||S.user.email,uid:S.user.uid,...(extra.banco?{banco:extra.banco}:{})})
+    });
+    if(!opt.silencioso) toast("Situação atualizada: "+STATUS[novo].rot);
+  }catch(err){ toast("Não consegui salvar: "+msgErro(err)); pintar(); }
+}
+async function salvarCampos(id,dados){
+  try{
+    await updateDoc(doc(db,"lotes",S.loteAtual,"leads",id),{
+      ...dados, respUid:S.user.uid, respNome:S.perfil.nome||S.user.email, atualizadoEm:serverTimestamp()
+    });
+    toast("Salvo.");
+  }catch(err){ toast("Não consegui salvar: "+msgErro(err)); }
+}
+
+/* ===================== FICHA ===================== */
+function abrirFicha(id){
+  const l=S.leads.find(x=>x.id===id); if(!l) return;
+  const st=l.status||"NOVO", z=zapLink(l.telefone), a=autorizadoEm(l), ida=idade(l.nascimento);
+  const hist=(l.historico||[]).slice().sort((x,y)=>(y.quando||"").localeCompare(x.quando||""));
+  const fechar=modal({
+    titulo:esc(l.nome), largura:"620px",
+    corpo:`
+      <div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <span class="tag t-${st}">${STATUS[st].rot}</span>${selos(l)}
+      </div>
+      <dl class="dl">
+        <dt>CPF</dt><dd class="mono">${fmtCPF(l.cpf)} <button class="btn btn-sm" data-copiatel="${soDig(l.cpf)}" style="margin-left:6px">copiar</button></dd>
+        <dt>Nascimento</dt><dd class="mono">${soData(l.nascimento)}${ida!==null?` · ${ida} anos`:""}</dd>
+        <dt>Telefone</dt><dd class="mono">${fmtTel(l.telefone)} <button class="btn btn-sm" data-copiatel="${soDig(l.telefone)}" style="margin-left:6px">copiar</button>${l.whatsapp?" · tem WhatsApp":""}</dd>
+        <dt>Matrícula</dt><dd class="mono">${esc(l.matricula||"—")}</dd>
+        <dt>Autorizado em</dt><dd class="mono">${a?soHora(a):"—"}</dd>
+        <dt>Prazo</dt><dd class="mono">${l.prazo?l.prazo+"x":"—"}</dd>
+        <dt>Parcela</dt><dd class="mono">${l.parcela?fmtMoeda(l.parcela):"—"}</dd>
+        <dt>Valor liberado</dt><dd class="mono dinheiro">${l.valorLiberado?fmtMoeda(l.valorLiberado):"—"}</dd>
+        <dt>Banco</dt><dd>${esc(l.banco||"—")}</dd>
+        <dt>Responsável</dt><dd>${esc(l.respNome||"ninguém ainda")}</dd>
+        <dt>Atualizado</dt><dd>${dataHora(l.atualizadoEm)}</dd>
+      </dl>
+      ${S.pode.altera?`
+      <div class="campo"><label>Banco</label>
+        <input id="fiBanco" type="text" list="listaBancos2" value="${esc(l.banco||"")}">
+        <datalist id="listaBancos2">${bancosUsados().map(b=>`<option value="${esc(b)}">`).join("")}</datalist></div>
+      <div class="campo"><label>Observação</label>
+        <textarea id="fiObs" rows="3" placeholder="ex: pediu para ligar depois das 18h">${esc(l.obs||"")}</textarea></div>
+      <div id="fiErro" class="aviso aviso-erro hide"></div>`:""}
+      <div class="hist">
+        <h4>Histórico</h4>
+        ${hist.length?hist.map(h=>`<div class="hist-i">
+            <span class="q"><b>${esc(h.quem||"—")}</b> mudou para <b>${STATUS[h.para]?STATUS[h.para].rot:esc(h.para)}</b>${h.banco?` · ${esc(h.banco)}`:""}</span>
+            <span class="w">${dataHora(h.quando)}</span></div>`).join("")
+          :'<div style="color:var(--text-3);font-size:12.5px">Sem movimentações ainda.</div>'}
+      </div>`,
+    pe:`${z?`<a class="btn" href="${z}" target="_blank" rel="noopener">Abrir WhatsApp</a>`:""}
+        ${S.pode.altera?`<button class="btn btn-primary" id="fiSalvar">Salvar</button>`:""}`
+  });
+  if(S.pode.altera) el("fiSalvar").onclick=async()=>{
+    const banco=(el("fiBanco").value||"").trim(), obs=(el("fiObs").value||"").trim();
+    if(STATUS[st].exigeBanco&&!banco){
+      el("fiErro").textContent="Esta situação exige o banco preenchido."; show("fiErro",true); return; }
+    if(STATUS[st].exigeMotivo&&obs.length<3){
+      el("fiErro").textContent="Esta situação exige o motivo na observação."; show("fiErro",true); return; }
+    el("fiSalvar").disabled=true;
+    const dados={};
+    if(banco!==(l.banco||"")) dados.banco=banco;
+    if(obs!==(l.obs||"")) dados.obs=obs;
+    if(Object.keys(dados).length) await salvarCampos(l.id,dados);
+    fechar();
+  };
+}
+
+/* ===================== KPIs / RESUMO ===================== */
+function contagens(lista){
+  const c={NOVO:0,CONTATO:0,SIMULACAO:0,REPROVADO:0,VENDA:0}; let vendido=0;
+  lista.forEach(l=>{const s=l.status||"NOVO";c[s]=(c[s]||0)+1;if(s==="VENDA")vendido+=Number(l.valorLiberado)||0;});
+  return {c,vendido,total:lista.length};
+}
+function pintarKpis(){
+  const {c,vendido,total}=contagens(S.leads);
+  const trab=total-c.NOVO, conv=trab?(c.VENDA/trab*100):0;
+  const quentes=QUENTES.size;
+  const m=S.filtro.marca, st=S.filtro.status;
+  const card=s=>`<div class="kpi ${(!m&&st===s)?"on":""}" data-kpi="${s}">
+      <div class="lbl"><span class="pt" style="background:${STATUS[s].cor}"></span>${STATUS[s].rot}</div>
+      <div class="val">${fmtNum(c[s])}</div>
+      <div class="sub">${total?((c[s]/total)*100).toFixed(1).replace(".",",")+"% do lote":"—"}</div></div>`;
+  el("kpis").innerHTML=
+    `<div class="kpi ${(!m&&st==="")?"on":""}" data-kpi="">
+       <div class="lbl">Total no lote</div><div class="val">${fmtNum(total)}</div>
+       <div class="sub">${fmtNum(trab)} trabalhados</div></div>
+     <div class="kpi ${m==="quente"?"on":""}" data-kpi="__quente"
+       style="border-color:${m==="quente"?"var(--quente)":"#ffd9bd"};background:linear-gradient(180deg,#fff8f2,#fff)">
+       <div class="lbl"><span class="pt" style="background:var(--quente)"></span>🔥 Quentes agora</div>
+       <div class="val" style="color:var(--quente)">${fmtNum(quentes)}</div>
+       <div class="sub">${m==="quente"?"filtro aplicado":"clique para filtrar"}</div></div>`
+    +ORDEM_ST.map(card).join("")
+    +`<div class="kpi" style="cursor:default"><div class="lbl">Conversão</div>
+        <div class="val">${conv.toFixed(1).replace(".",",")}%</div><div class="sub">vendas ÷ trabalhados</div></div>
+      <div class="kpi" style="cursor:default"><div class="lbl">Valor vendido</div>
+        <div class="val" style="font-size:19px">${fmtMoeda(vendido)}</div><div class="sub">soma do valor liberado</div></div>`;
+}
+el("kpis").onclick=e=>{
+  const k=e.target.closest("[data-kpi]"); if(!k) return;
+  const v=k.dataset.kpi;
+  if(v.startsWith("__")){
+    const alvo=v.slice(2);
+    S.filtro.marca=(S.filtro.marca===alvo)?"":alvo;
+    S.filtro.status="";
+  }else{
+    S.filtro.marca=""; S.filtro.status=v;
+  }
+  el("fStatus").value=S.filtro.status; S.pag=1; pintar();
+};
+function pintarResumo(){
+  grafSituacoes(); grafVendedores();
+  const {c,vendido,total}=contagens(S.leads);
+  const trab=total-c.NOVO, conv=trab?(c.VENDA/trab*100):0;
+  el("kpisResumo").innerHTML=
+    `<div class="kpi" style="cursor:default"><div class="lbl">Leads no lote</div><div class="val">${fmtNum(total)}</div></div>
+     <div class="kpi" style="cursor:default"><div class="lbl">Trabalhados</div><div class="val">${fmtNum(trab)}</div><div class="sub">${total?(trab/total*100).toFixed(0):0}% do lote</div></div>
+     <div class="kpi" style="cursor:default"><div class="lbl">Vendas</div><div class="val">${fmtNum(c.VENDA)}</div><div class="sub">conversão ${conv.toFixed(1).replace(".",",")}%</div></div>
+     <div class="kpi" style="cursor:default"><div class="lbl">Valor vendido</div><div class="val" style="font-size:19px">${fmtMoeda(vendido)}</div></div>`;
+  const por={};
+  S.leads.forEach(l=>{
+    if(!l.respUid) return;
+    por[l.respUid] ||= {nome:l.respNome||"—",t:0,CONTATO:0,SIMULACAO:0,REPROVADO:0,VENDA:0,v:0};
+    const s=l.status||"NOVO", p=por[l.respUid];
+    p.t++; if(p[s]!==undefined) p[s]++;
+    if(s==="VENDA") p.v+=Number(l.valorLiberado)||0;
+  });
+  const arr=Object.values(por).sort((a,b)=>b.VENDA-a.VENDA||b.t-a.t);
+  el("tbodyResumo").innerHTML=arr.length?arr.map(p=>{
+    const cv=p.t?(p.VENDA/p.t*100):0;
+    return `<tr><td class="nome-cel">${esc(p.nome)}</td><td class="mono">${fmtNum(p.t)}</td>
+      <td class="mono">${fmtNum(p.CONTATO)}</td><td class="mono">${fmtNum(p.SIMULACAO)}</td>
+      <td class="mono">${fmtNum(p.REPROVADO)}</td><td class="mono"><b>${fmtNum(p.VENDA)}</b></td>
+      <td class="mono">${cv.toFixed(1).replace(".",",")}%</td><td class="mono dinheiro">${fmtMoeda(p.v)}</td></tr>`;
+  }).join(""):`<tr><td colspan="8" style="color:var(--text-3);padding:18px;text-align:center">Ninguém atualizou leads desse lote ainda.</td></tr>`;
+
+  const bk={};
+  S.leads.forEach(l=>{ if((l.status||"")!=="VENDA") return;
+    const b=(l.banco||"não informado").trim();
+    bk[b] ||= {n:0,v:0}; bk[b].n++; bk[b].v+=Number(l.valorLiberado)||0; });
+  const ba=Object.entries(bk).sort((a,b)=>b[1].v-a[1].v);
+  el("tbodyBancos").innerHTML=ba.length?ba.map(([b,d])=>
+    `<tr><td class="nome-cel">${esc(b)}</td><td class="mono">${fmtNum(d.n)}</td>
+      <td class="mono dinheiro">${fmtMoeda(d.v)}</td><td class="mono">${fmtMoeda(d.v/d.n)}</td></tr>`).join("")
+    :`<tr><td colspan="4" style="color:var(--text-3);padding:18px;text-align:center">Nenhuma venda finalizada ainda.</td></tr>`;
+}
+/* ---------- gráficos ---------- */
+const dica=el("dicaGraf");
+document.addEventListener("mouseover",e=>{
+  const t=e.target.closest("[data-tip]"); if(!t) return;
+  dica.textContent=t.getAttribute("data-tip"); dica.classList.add("on");
+});
+document.addEventListener("mousemove",e=>{
+  if(!dica.classList.contains("on")) return;
+  const x=Math.min(e.clientX+14,window.innerWidth-dica.offsetWidth-8);
+  dica.style.left=x+"px"; dica.style.top=(e.clientY-dica.offsetHeight-10)+"px";
+});
+document.addEventListener("mouseout",e=>{
+  if(e.target.closest("[data-tip]")) dica.classList.remove("on");
+});
+function grafSituacoes(){
+  const {c,total}=contagens(S.leads);
+  if(!total){ el("grafSituacoes").innerHTML=`<div class="graf-vazio">Nenhum lead nesse lote.</div>`; return; }
+  el("grafSituacoes").innerHTML=ORDEM_ST.map(s=>{
+    const n=c[s], pc=n/total*100;
+    return `<div class="graf-linha">
+      <div class="graf-rot"><span class="pt" style="background:${STATUS[s].cor}"></span>${STATUS[s].rot}</div>
+      <div class="graf-trilho"><i class="graf-barra" style="width:${pc.toFixed(2)}%;min-width:${n?2:0}px;background:${STATUS[s].cor}"
+        data-tip="${STATUS[s].rot}: ${fmtNum(n)} de ${fmtNum(total)} (${pc.toFixed(1).replace(".",",")}%)"></i></div>
+      <div class="graf-val">${fmtNum(n)}<small>${pc.toFixed(1).replace(".",",")}%</small></div>
+    </div>`;
+  }).join("");
+}
+function grafVendedores(){
+  const por={};
+  S.leads.forEach(l=>{
+    if(!l.respUid) return;
+    por[l.respUid] ||= {nome:l.respNome||"—",t:0,NOVO:0,CONTATO:0,SIMULACAO:0,REPROVADO:0,VENDA:0};
+    const s=l.status||"NOVO"; por[l.respUid].t++;
+    if(por[l.respUid][s]!==undefined) por[l.respUid][s]++;
+  });
+  el("legendaStatus").innerHTML=ORDEM_ST.map(s=>
+    `<span><span class="pt" style="background:${STATUS[s].cor}"></span>${STATUS[s].rot}</span>`).join("");
+  const arr=Object.values(por).sort((a,b)=>b.t-a.t);
+  if(!arr.length){
+    el("grafVendedores").innerHTML=`<div class="graf-vazio">Ninguém assumiu leads desse lote ainda.</div>`;
+    el("legendaStatus").innerHTML=""; return;
+  }
+  const maior=Math.max(...arr.map(p=>p.t));
+  el("grafVendedores").innerHTML=arr.map(p=>{
+    const larg=p.t/maior*100;
+    const segs=ORDEM_ST.filter(s=>p[s]>0).map(s=>
+      `<i style="width:${(p[s]/p.t*100).toFixed(2)}%;background:${STATUS[s].cor}"
+         data-tip="${esc(p.nome)} · ${STATUS[s].rot}: ${fmtNum(p[s])}"></i>`).join("");
+    return `<div class="graf-linha">
+      <div class="graf-rot" title="${esc(p.nome)}">${esc(p.nome)}</div>
+      <div><div class="pilha" style="width:${larg.toFixed(2)}%">${segs}</div></div>
+      <div class="graf-val">${fmtNum(p.t)}<small>${p.VENDA?fmtNum(p.VENDA)+" venda"+(p.VENDA>1?"s":""):""}</small></div>
+    </div>`;
+  }).join("");
+}
+
+function pintarLotes(){
+  el("tbodyLotes").innerHTML=S.lotes.length?S.lotes.map(l=>
+    `<tr><td class="nome-cel">${esc(l.nome||l.id)}</td><td class="mono">${fmtNum(l.total||0)}</td>
+      <td>${dataHora(l.criadoEm)}</td><td>${esc(l.criadoPor||"—")}</td>
+      <td>${S.pode.importa?`<button class="btn btn-sm btn-danger" data-dellote="${l.id}">Excluir planilha</button>`:""}</td></tr>`
+  ).join(""):`<tr><td colspan="5" style="color:var(--text-3);padding:18px;text-align:center">Nenhum lote ainda.</td></tr>`;
+}
+el("tbodyLotes").onclick=async e=>{
+  const b=e.target.closest("[data-dellote]"); if(!b) return;
+  const id=b.getAttribute("data-dellote");
+  const fechar=modal({titulo:"Excluir planilha importada",
+    corpo:`<p>Isso apaga o lote <b>${esc(id)}</b> do histórico e <b>todos os leads dele</b>, junto com as situações, bancos e observações já registrados pela equipe.</p>
+      <div class="aviso aviso-erro" style="margin:14px 0 0">Não dá para desfazer. Se precisar guardar os números, exporte antes pela aba Resumo.</div>`,
+    pe:`<button class="btn" id="dlNao">Cancelar</button><button class="btn btn-danger" id="dlSim">Excluir mesmo assim</button>`});
+  el("dlNao").onclick=fechar;
+  el("dlSim").onclick=async()=>{
+    el("dlSim").disabled=true; el("dlSim").textContent="Excluindo…";
+    try{
+      const snap=await getDocs(collection(db,"lotes",id,"leads"));
+      let lote=writeBatch(db),n=0;
+      for(const d of snap.docs){ lote.delete(d.ref); if(++n%400===0){ await lote.commit(); lote=writeBatch(db);} }
+      await lote.commit(); await deleteDoc(doc(db,"lotes",id));
+      toast("Planilha e leads excluídos do histórico."); fechar();
+    }catch(err){ toast("Erro: "+msgErro(err)); el("dlSim").disabled=false; el("dlSim").textContent="Excluir mesmo assim"; }
+  };
+};
+
+/* ===================== EXPORTAR ===================== */
+el("btnExportar").onclick=()=>{
+  const lista=filtrados();
+  if(!lista.length){ toast("Nada para exportar com esses filtros."); return; }
+  const linhas=lista.map(l=>({
+    "NOME":l.nome||"", "CPF":soDig(l.cpf), "DATA NASCIMENTO":soData(l.nascimento), "IDADE":idade(l.nascimento)??"",
+    "MATRÍCULA":l.matricula||"", "PRAZO":l.prazo||"", "PARCELA":Number(l.parcela)||0,
+    "VALOR LIBERADO":Number(l.valorLiberado)||0, "TELEFONE":soDig(l.telefone),
+    "POSSUI WHATSAPP":l.whatsapp?"SIM":"NÃO",
+    "AUTORIZADO EM":soHora(autorizadoEm(l)), "VÁLIDO ATÉ":soHora(l.validoAte),
+    "SITUAÇÃO":STATUS[l.status||"NOVO"].rot, "BANCO":l.banco||"",
+    "RESPONSÁVEL":l.respNome||"", "OBSERVAÇÃO":l.obs||"", "ATUALIZADO EM":dataHora(l.atualizadoEm)
+  }));
+  const ws=XLSX.utils.json_to_sheet(linhas);
+  ws["!cols"]=[{wch:36},{wch:14},{wch:13},{wch:7},{wch:24},{wch:7},{wch:12},{wch:14},{wch:14},{wch:9},{wch:16},{wch:16},{wch:20},{wch:16},{wch:22},{wch:34},{wch:16}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Leads");
+  const lote=S.lotes.find(l=>l.id===S.loteAtual);
+  XLSX.writeFile(wb,`leads_${(lote?.id||hoje())}_situacao.xlsx`);
+  toast("Planilha baixada.");
+};
+
+el("btnExportarVendas").onclick=()=>{
+  const vendas=S.leads.filter(l=>(l.status||"")==="VENDA");
+  if(!vendas.length){ toast("Nenhuma venda finalizada nesse lote ainda."); return; }
+  const lote=S.lotes.find(l=>l.id===S.loteAtual);
+  vendas.sort((a,b)=>(Number(b.valorLiberado)||0)-(Number(a.valorLiberado)||0));
+  const linhas=vendas.map(l=>({
+    "LOTE":lote?.id||"", "NOME":l.nome||"", "CPF":soDig(l.cpf),
+    "DATA NASCIMENTO":soData(l.nascimento), "IDADE":idade(l.nascimento)??"",
+    "TELEFONE":soDig(l.telefone), "MATRÍCULA":l.matricula||"",
+    "BANCO":l.banco||"", "PRAZO":l.prazo||"", "PARCELA":Number(l.parcela)||0,
+    "VALOR LIBERADO":Number(l.valorLiberado)||0,
+    "VENDEDOR":l.respNome||"", "FECHADA EM":dataHora(l.atualizadoEm),
+    "AUTORIZADO EM":soHora(autorizadoEm(l)), "OBSERVAÇÃO":l.obs||""
+  }));
+  const total=vendas.reduce((s,l)=>s+(Number(l.valorLiberado)||0),0);
+  linhas.push({},{ "LOTE":"TOTAL", "NOME":`${vendas.length} venda(s)`, "VALOR LIBERADO":total });
+  const ws=XLSX.utils.json_to_sheet(linhas);
+  ws["!cols"]=[{wch:12},{wch:36},{wch:14},{wch:14},{wch:7},{wch:14},{wch:24},{wch:18},{wch:7},{wch:12},{wch:15},{wch:22},{wch:16},{wch:16},{wch:34}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Vendas");
+  XLSX.writeFile(wb,`vendas_${(lote?.id||hoje())}.xlsx`);
+  toast(`${vendas.length} venda(s) exportada(s).`);
+};
+
+/* ===================== IMPORTAR ===================== */
+el("btnEscolher").onclick=()=>el("arquivo").click();
+el("arquivo").onchange=e=>{ if(e.target.files[0]) lerArquivo(e.target.files[0]); };
+const solta=el("solta");
+["dragenter","dragover"].forEach(ev=>solta.addEventListener(ev,e=>{e.preventDefault();solta.classList.add("hot")}));
+["dragleave","drop"].forEach(ev=>solta.addEventListener(ev,e=>{e.preventDefault();solta.classList.remove("hot")}));
+solta.addEventListener("drop",e=>{const f=e.dataTransfer.files[0]; if(f) lerArquivo(f);});
+el("btnCancelarImp").onclick=()=>{S.imp=null;show("cxMapa",false);el("arquivo").value="";};
+
+async function lerArquivo(file){
+  try{
+    let cab=[],linhas=[];
+    if(/\.csv$/i.test(file.name)){
+      const txt=await lerTexto(file);
+      const m=parseCSV(txt,detectaSep(txt));
+      cab=m.shift().map(limpaCelula);
+      linhas=m;
+    }else{
+      const buf=await file.arrayBuffer();
+      const wb=XLSX.read(buf,{type:"array"});
+      const m=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:""});
+      while(m.length&&m[0].every(c=>String(c).trim()==="")) m.shift();
+      cab=(m.shift()||[]).map(c=>limpaCelula(c));
+      linhas=m;
+    }
+    linhas=linhas.filter(r=>r.some(c=>String(c).trim()!==""));
+    if(!cab.length||!linhas.length) throw new Error("Não encontrei cabeçalho e linhas de dados nesse arquivo.");
+    const mapa={};
+    CAMPOS.forEach(c=>{
+      const i=cab.findIndex(h=>c.alvos.includes(norm(h)));
+      mapa[c.k]=i>=0?i:cab.findIndex(h=>c.alvos.some(a=>norm(h).includes(a)));
+    });
+    S.imp={cab,linhas,mapa,arquivo:file.name};
+    el("loteNome").value=hoje();
+    el("mapaInfo").innerHTML=`Arquivo <b>${esc(file.name)}</b> · ${fmtNum(linhas.length)} linhas · ${cab.length} colunas. Confira o encaixe das colunas:`;
+    el("mapaCampos").innerHTML=CAMPOS.map(c=>`
+      <div class="campo"><label>${c.rot}${c.obrig?' <span class="obrig">*</span>':""}</label>
+        <select data-mc="${c.k}">
+          <option value="-1">— não usar —</option>
+          ${cab.map((h,i)=>`<option value="${i}" ${mapa[c.k]===i?"selected":""}>${esc(h)||"(coluna "+(i+1)+")"}</option>`).join("")}
+        </select></div>`).join("");
+    el("mapaCampos").onchange=e=>{
+      const s=e.target.closest("[data-mc]"); if(!s) return;
+      S.imp.mapa[s.dataset.mc]=+s.value; previa();
+    };
+    previa(); show("cxMapa",true); show("cxProg",false);
+    el("btnImportar").disabled=false;
+    el("cxMapa").scrollIntoView({behavior:"smooth",block:"start"});
+  }catch(err){ toast("Erro ao ler: "+err.message); }
+}
+function lerTexto(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onerror=()=>rej(new Error("não consegui abrir o arquivo"));
+    r.onload=()=>{
+      let t=r.result;
+      if(/�/.test(t.slice(0,4000))){
+        const r2=new FileReader();
+        r2.onload=()=>res(r2.result); r2.onerror=()=>res(t);
+        r2.readAsText(file,"ISO-8859-1");
+      }else res(t);
+    };
+    r.readAsText(file,"UTF-8");
+  });
+}
+function detectaSep(txt){
+  const l=txt.split(/\r?\n/).find(x=>x.trim())||"";
+  const c={";":0,",":0,"\t":0}; let q=false;
+  for(const ch of l){ if(ch==='"') q=!q; else if(!q&&c[ch]!==undefined) c[ch]++; }
+  return Object.keys(c).sort((a,b)=>c[b]-c[a])[0];
+}
+function parseCSV(txt,sep){
+  const out=[]; let linha=[],campo="",q=false;
+  txt=txt.replace(/^﻿/,"");
+  for(let i=0;i<txt.length;i++){
+    const ch=txt[i];
+    if(q){ if(ch==='"'){ if(txt[i+1]==='"'){campo+='"';i++;} else q=false; } else campo+=ch; }
+    else{
+      if(ch==='"') q=true;
+      else if(ch===sep){ linha.push(campo); campo=""; }
+      else if(ch==="\n"){ linha.push(campo); out.push(linha); linha=[]; campo=""; }
+      else if(ch==="\r"){}
+      else campo+=ch;
+    }
+  }
+  if(campo!==""||linha.length){ linha.push(campo); out.push(linha); }
+  return out;
+}
+function montaLead(r){
+  const m=S.imp.mapa, g=k=>m[k]>=0?limpaCelula(r[m[k]]):"";
+  const zap=norm(g("whatsapp"));
+  return {
+    nome:(g("nome")||"").toUpperCase().replace(/\s+/g," ").trim(),
+    cpf:soDig(g("cpf")),
+    nascimento:paraISO(g("nascimento")),
+    matricula:g("matricula"),
+    telefone:soDig(g("telefone")),
+    prazo:parseInt(soDig(g("prazo")))||null,
+    parcela:numBR(g("parcela")),
+    valorLiberado:numBR(g("valorLiberado")),
+    validoAte:paraISO(g("validoAte")),
+    whatsapp:m.whatsapp>=0?["sim","s","true","1","yes","y"].includes(zap):null
+  };
+}
+function previa(){
+  const l5=S.imp.linhas.slice(0,5).map(montaLead);
+  el("prevTbl").innerHTML=`<table><thead><tr>
+    <th>Nome</th><th>CPF</th><th>Nasc.</th><th>Telefone</th><th>Prazo</th><th>Parcela</th><th>Valor</th><th>Autorizado</th><th>Zap</th></tr></thead><tbody>
+    ${l5.map(l=>{const a=autorizadoEm(l);return `<tr>
+      <td>${esc(l.nome)||'<span class="obrig">vazio</span>'}</td>
+      <td class="mono">${l.cpf?fmtCPF(l.cpf):'<span class="obrig">vazio</span>'}</td>
+      <td class="mono">${soData(l.nascimento)}</td>
+      <td class="mono">${l.telefone?fmtTel(l.telefone):'<span class="obrig">vazio</span>'}</td>
+      <td class="mono">${l.prazo||"—"}</td>
+      <td class="mono">${l.parcela?fmtMoeda(l.parcela):"—"}</td>
+      <td class="mono">${l.valorLiberado?fmtMoeda(l.valorLiberado):"—"}</td>
+      <td class="mono">${a?soHora(a):"—"}</td>
+      <td>${l.whatsapp===null?"—":(l.whatsapp?"SIM":"NÃO")}</td></tr>`}).join("")}
+    </tbody></table>`;
+}
+el("btnImportar").onclick=async()=>{
+  if(!S.imp) return;
+  const falta=CAMPOS.filter(c=>c.obrig&&!(S.imp.mapa[c.k]>=0)).map(c=>c.rot);
+  if(falta.length){ toast("Falta indicar: "+falta.join(", ")); return; }
+  const loteId=(el("loteNome").value.trim()||hoje()).replace(/[\/\\#\[\]*?:]/g,"-");
+  const brutos=S.imp.linhas.map(montaLead).filter(l=>l.nome&&(l.cpf||l.telefone));
+  if(!brutos.length){ toast("Nenhuma linha válida (precisa ter nome e CPF ou telefone)."); return; }
+  const vistos=new Set(), leads=[];
+  for(const l of brutos){
+    const id=(l.cpf||soDig(l.telefone)).padStart(3,"0");
+    if(vistos.has(id)) continue;
+    vistos.add(id); leads.push({id,...l});
+  }
+  const dup=brutos.length-leads.length;
+  el("btnImportar").disabled=true; show("cxProg",true);
+  const prog=(f,t,msg)=>{ el("progBar").style.width=(t?f/t*100:0)+"%"; el("progTxt").textContent=msg; };
+  try{
+    prog(0,1,"Verificando o que já existe nesse lote…");
+    const atuais=new Map();
+    (await getDocs(collection(db,"lotes",loteId,"leads"))).forEach(d=>atuais.set(d.id,d.data()));
+    let lote=writeBatch(db),n=0,novos=0,mantidos=0;
+    for(let i=0;i<leads.length;i++){
+      const l=leads[i], ja=atuais.get(l.id), dados={...l};
+      delete dados.id;
+      if(ja){ mantidos++; lote.set(doc(db,"lotes",loteId,"leads",l.id),dados,{merge:true}); }
+      else{ novos++; lote.set(doc(db,"lotes",loteId,"leads",l.id),{
+        ...dados,status:"NOVO",obs:"",banco:"",respUid:null,respNome:null,
+        historico:[],criadoEm:serverTimestamp(),atualizadoEm:null}); }
+      if(++n%400===0||i===leads.length-1){
+        await lote.commit(); lote=writeBatch(db);
+        prog(i+1,leads.length,`Enviando… ${fmtNum(i+1)} de ${fmtNum(leads.length)}`);
+      }
+    }
+    const totalFinal=new Set([...atuais.keys(),...leads.map(l=>l.id)]).size;
+    await setDoc(doc(db,"lotes",loteId),{nome:loteId,data:loteId,total:totalFinal,
+      criadoEm:serverTimestamp(),criadoPor:S.perfil.nome||S.user.email,arquivo:S.imp.arquivo},{merge:true});
+    prog(1,1,"Pronto!");
+    show("cxMapa",false); el("arquivo").value=""; S.imp=null; S.loteAtual=loteId;
+    modal({titulo:"Importação concluída",
+      corpo:`<div class="aviso aviso-ok">O lote <b>${esc(loteId)}</b> está no ar para a equipe.</div>
+        <dl class="dl"><dt>Leads novos</dt><dd>${fmtNum(novos)}</dd>
+        <dt>Já existiam</dt><dd>${fmtNum(mantidos)} (situação, banco e responsável preservados)</dd>
+        ${dup?`<dt>Duplicados</dt><dd>${fmtNum(dup)} linha(s) ignorada(s)</dd>`:""}
+        <dt>Total no lote</dt><dd><b>${fmtNum(totalFinal)}</b></dd></dl>`,
+      pe:`<button class="btn btn-primary" onclick="document.getElementById('modalHost').innerHTML=''">Fechar</button>`});
+  }catch(err){ toast("Erro na importação: "+msgErro(err)); el("btnImportar").disabled=false; }
+};
+
+/* ===================== PEDIDOS DE LEADS ===================== */
+el("btnPedirLeads").onclick=()=>{
+  const meus=S.leads.filter(l=>l.respUid===S.user.uid&&(l.status||"NOVO")!=="NOVO").length;
+  const livres=S.leads.filter(l=>(l.status||"NOVO")==="NOVO"&&!l.respUid).length;
+  const fechar=modal({titulo:"Pedir mais leads",
+    corpo:`<p style="margin:0 0 16px;color:var(--text-2)">O importador e o administrador recebem o aviso na hora.</p>
+      <div class="campo"><label>Quantos leads você precisa? <span class="obrig">*</span></label>
+        <input id="pdQtd" type="number" min="1" max="2000" step="10" value="50"></div>
+      <div class="campo"><label>Observação (opcional)</label>
+        <input id="pdObs" type="text" maxlength="140" placeholder="ex: acabou a lista de SP"></div>
+      <div class="aviso aviso-info">No lote atual ainda há <b>${fmtNum(livres)}</b> lead(s) sem responsável. Você já trabalhou <b>${fmtNum(meus)}</b>.</div>
+      <div id="pdErro" class="aviso aviso-erro hide"></div>`,
+    pe:`<button class="btn" id="pdNao">Cancelar</button><button class="btn btn-primary" id="pdSim">Enviar pedido</button>`});
+  el("pdNao").onclick=fechar;
+  setTimeout(()=>el("pdQtd").select(),60);
+  el("pdSim").onclick=async()=>{
+    const q=parseInt(el("pdQtd").value,10);
+    if(!q||q<1||q>2000){ el("pdErro").textContent="Informe uma quantidade entre 1 e 2000."; show("pdErro",true); return; }
+    el("pdSim").disabled=true;
+    try{
+      await setDoc(doc(db,"pedidos",S.user.uid+"-"+Date.now()),{
+        uid:S.user.uid, nome:S.perfil.nome||S.user.email, quantidade:q,
+        obs:(el("pdObs").value||"").trim(), quando:serverTimestamp(), atendido:false});
+      fechar(); toast("Pedido enviado. O time de importação foi avisado.");
+    }catch(err){ el("pdErro").textContent=msgErro(err); show("pdErro",true); el("pdSim").disabled=false; }
+  };
+};
+
+function ouvirPedidos(){
+  let primeira=true, antes=0;
+  S.unsubPedidos=onSnapshot(collection(db,"pedidos"),snap=>{
+    S.pedidos=snap.docs.map(d=>({id:d.id,...d.data()})).filter(p=>!p.atendido)
+      .sort((a,b)=>(b.quando?.seconds||0)-(a.quando?.seconds||0));
+    const n=S.pedidos.length;
+    el("bolhaPedidos").textContent=n; show("bolhaPedidos",n>0); show("cxPedidos",n>0);
+    el("listaPedidos").innerHTML=S.pedidos.map(p=>`
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:11px 0;border-bottom:1px solid var(--border)">
+        <div style="flex:1;min-width:200px">
+          <b>${esc(p.nome)}</b> pediu <b style="color:var(--parado)">${fmtNum(p.quantidade)}</b> lead(s)
+          ${p.obs?`<div style="color:var(--text-2);font-size:12.5px">“${esc(p.obs)}”</div>`:""}
+          <div style="color:var(--text-3);font-size:12px">${dataHora(p.quando)}</div>
+        </div>
+        <button class="btn btn-sm btn-primary" data-okpedido="${p.id}">Marcar como atendido</button>
+      </div>`).join("");
+    if(!primeira&&n>antes){
+      const novo=S.pedidos[0];
+      toast(`${novo.nome} pediu ${fmtNum(novo.quantidade)} leads.`);
+      if(S.avisoOk&&"Notification" in window&&Notification.permission==="granted"){
+        try{ new Notification("Pedido de leads",
+          {body:`${novo.nome} precisa de ${novo.quantidade} lead(s).`}); }catch(e){}
+      }
+    }
+    antes=n; primeira=false;
+    piscarTitulo(n);
+  },()=>{});
+}
+/* alerta na aba do navegador */
+function piscarTitulo(n){
+  if(S.piscando){ clearInterval(S.piscando); S.piscando=null; }
+  if(!n){ document.title=S.tituloBase; return; }
+  const aviso=`🔔 (${n}) Pedido de leads`;
+  let alterna=false;
+  document.title=aviso;
+  S.piscando=setInterval(()=>{
+    alterna=!alterna;
+    document.title=alterna?S.tituloBase:aviso;
+  },1500);
+}
+el("listaPedidos").onclick=async e=>{
+  const b=e.target.closest("[data-okpedido]"); if(!b) return;
+  b.disabled=true;
+  try{ await updateDoc(doc(db,"pedidos",b.getAttribute("data-okpedido")),
+    {atendido:true,atendidoPor:S.perfil.nome||S.user.email,atendidoEm:serverTimestamp()});
+  }catch(err){ toast(msgErro(err)); b.disabled=false; }
+};
+el("btnAtivarAviso").onclick=async()=>{
+  if(!("Notification" in window)){ toast("Este navegador não tem esse aviso."); return; }
+  const r=await Notification.requestPermission();
+  S.avisoOk=r==="granted";
+  show("btnAtivarAviso",!S.avisoOk);
+  toast(S.avisoOk?"Aviso ativado no computador.":"Aviso não autorizado pelo navegador.");
+};
+
+/* ===================== USUÁRIOS ===================== */
+function ouvirUsuarios(){
+  S.unsubUsrs=onSnapshot(collection(db,"usuarios"),snap=>{
+    S.usuarios=snap.docs.map(d=>({uid:d.id,...d.data()}))
+      .sort((a,b)=>norm(a.nome).localeCompare(norm(b.nome),"pt-BR"));
+    el("chipUsrs").textContent=S.usuarios.length;
+    el("tbodyUsrs").innerHTML=S.usuarios.map(u=>`<tr>
+      <td class="nome-cel">${esc(u.nome||"—")}</td>
+      <td class="mono">${esc(u.login||"—")}</td>
+      <td>${esc(u.email||"—")}</td>
+      <td><span class="tag ${u.perfil==="admin"?"t-CONTATO":u.perfil==="gestor"?"t-SIMULACAO":u.perfil==="importador"?"t-VENDA":"t-NOVO"}">${(PERFIS[u.perfil]||{}).rot||u.perfil}</span></td>
+      <td><span class="tag ${u.ativo===false?"t-REPROVADO":"t-VENDA"}">${u.ativo===false?"Inativo":"Ativo"}</span></td>
+      <td><div class="acoes">
+        <button class="btn btn-sm" data-senha="${esc(u.email)}">Enviar nova senha</button>
+        ${u.uid===S.user.uid?"":`<button class="btn btn-sm" data-tog="${u.uid}">${u.ativo===false?"Reativar":"Desativar"}</button>`}
+      </div></td></tr>`).join("");
+    const sel=el("fResp"), v=sel.value;
+    sel.innerHTML=`<option value="">Todos os responsáveis</option>
+      <option value="__meus">Somente meus leads</option>
+      <option value="__livres">Sem responsável</option>`+
+      S.usuarios.map(u=>`<option value="${u.uid}">${esc(u.nome||u.email)}</option>`).join("");
+    sel.value=v;
+  },err=>toast("Erro ao carregar usuários: "+msgErro(err)));
+}
+function ouvirResets(){
+  S.unsubResets=onSnapshot(collection(db,"resets"),snap=>{
+    S.resets=snap.docs.map(d=>({id:d.id,...d.data()})).filter(r=>!r.atendido)
+      .sort((a,b)=>(b.quando?.seconds||0)-(a.quando?.seconds||0));
+    const n=S.resets.length;
+    el("bolhaResets").textContent=n; show("bolhaResets",n>0); show("cxResets",n>0);
+    el("listaResets").innerHTML=S.resets.map(r=>`
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="flex:1;min-width:180px"><b>${esc(r.usuario)}</b>
+          <div style="color:var(--text-3);font-size:12px">${esc(r.email||"")} · ${dataHora(r.quando)}</div></div>
+        <button class="btn btn-sm" data-reenv="${esc(r.email)}">Reenviar link</button>
+        <button class="btn btn-sm btn-primary" data-okreset="${r.id}">Marcar como resolvido</button>
+      </div>`).join("");
+  },()=>{});
+}
+el("listaResets").onclick=async e=>{
+  const r=e.target.closest("[data-reenv]");
+  if(r){ try{ await sendPasswordResetEmail(auth,r.getAttribute("data-reenv"));
+    toast("Link reenviado."); }catch(err){ toast(msgErro(err)); } return; }
+  const o=e.target.closest("[data-okreset]");
+  if(o){ try{ await updateDoc(doc(db,"resets",o.getAttribute("data-okreset")),{atendido:true});
+    }catch(err){ toast(msgErro(err)); } }
+};
+el("tbodyUsrs").onclick=async e=>{
+  const s=e.target.closest("[data-senha]");
+  if(s){ try{ await sendPasswordResetEmail(auth,s.getAttribute("data-senha"));
+    toast("Link de nova senha enviado para o e-mail da pessoa."); }catch(err){ toast(msgErro(err)); } return; }
+  const t=e.target.closest("[data-tog]");
+  if(t){ const u=S.usuarios.find(x=>x.uid===t.dataset.tog); if(!u) return;
+    try{ await updateDoc(doc(db,"usuarios",u.uid),{ativo:u.ativo===false});
+      toast(u.ativo===false?"Acesso reativado.":"Acesso desativado."); }catch(err){ toast(msgErro(err)); } }
+};
+el("nuNome").oninput=e=>{
+  const p=norm(e.target.value).split(" ")[0]||"";
+  if(!el("nuLogin").dataset.tocado) el("nuLogin").value=p;
+};
+el("nuLogin").oninput=()=>{ el("nuLogin").dataset.tocado="1"; };
+el("btnCriarUsr").onclick=async()=>{
+  const nome=el("nuNome").value.trim(), login=norm(el("nuLogin").value).replace(/\s+/g,""),
+        email=el("nuEmail").value.trim(), senha=el("nuSenha").value, perfil=el("nuPerfil").value;
+  const av=el("nuAviso");
+  const falhar=m=>{ av.className="aviso aviso-erro"; av.textContent=m; show("nuAviso",true); };
+  if(!nome||!login||!email||senha.length<6) return falhar("Preencha nome, usuário, e-mail e uma senha de 6 caracteres ou mais.");
+  if(S.usuarios.some(u=>norm(u.login)===login)) return falhar(`Já existe alguém usando "${login}". Escolha outro usuário, como nome e sobrenome juntos.`);
+  el("btnCriarUsr").disabled=true; show("nuAviso",false);
+  let seg=null;
+  try{
+    seg=initializeApp(CFG,"secundario-"+Date.now());
+    const authSeg=getAuth(seg);
+    const cred=await createUserWithEmailAndPassword(authSeg,email,senha);
+    await setDoc(doc(db,"usuarios",cred.user.uid),{nome,login,email,perfil,ativo:true,
+      criadoEm:serverTimestamp(),criadoPor:S.perfil.nome||S.user.email});
+    await setDoc(doc(db,"logins",login),{email,uid:cred.user.uid});
+    await signOut(authSeg);
+    av.className="aviso aviso-ok";
+    av.innerHTML=`<b>${esc(nome)}</b> cadastrado(a). Passe estes dados: usuário <b>${esc(login)}</b> e senha <b>${esc(senha)}</b>.`;
+    show("nuAviso",true);
+    el("nuNome").value=el("nuEmail").value=el("nuSenha").value=el("nuLogin").value="";
+    delete el("nuLogin").dataset.tocado;
+  }catch(err){ falhar(msgErro(err)); }
+  finally{ if(seg) deleteApp(seg).catch(()=>{}); el("btnCriarUsr").disabled=false; }
+};
+
+</script>
+</body>
+</html>

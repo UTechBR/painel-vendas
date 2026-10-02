@@ -99,7 +99,7 @@
   .aba.on{color:var(--brand-2);border-bottom-color:var(--brand-2)}
   .bolha{background:var(--cancel);color:#fff;border-radius:999px;font-size:10.5px;font-weight:700;
     padding:1px 6px;line-height:1.5}
-  main{flex:1;width:100%;max-width:1480px;margin:0 auto;padding:18px}
+  main{flex:1;width:100%;max-width:1480px;margin:0 auto;padding:18px 14px}
   .painel{display:none}
   .painel.on{display:block}
   footer.rodape{border-top:1px solid var(--border);background:var(--surface);padding:16px 18px;
@@ -135,12 +135,12 @@
   .quadro-cab h2{margin:0;font-size:13.5px;font-weight:700}
   .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
   table{width:100%;border-collapse:collapse;font-size:13px}
-  thead th{position:sticky;top:0;background:var(--surface-2);text-align:left;padding:9px 12px;
+  thead th{position:sticky;top:0;background:var(--surface-2);text-align:left;padding:9px 9px;
     font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-3);
     border-bottom:1px solid var(--border);white-space:nowrap;z-index:2}
   thead th.ord{cursor:pointer;user-select:none}
   thead th.ord:hover{color:var(--text)}
-  tbody td{padding:9px 12px;border-bottom:1px solid #eef0f3;vertical-align:middle}
+  tbody td{padding:8px 9px;border-bottom:1px solid #eef0f3;vertical-align:middle}
   tbody tr:hover{background:#fffaf5}
   tbody tr:last-child td{border-bottom:none}
   tr.quente{background:linear-gradient(90deg,rgba(240,124,31,.09),transparent 45%)}
@@ -148,9 +148,9 @@
   .nome-cel{font-weight:600;letter-spacing:-.1px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
   .mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
   .nowrap{white-space:nowrap}
-  .tel-cel{white-space:nowrap;min-width:136px}
+  .tel-cel{white-space:nowrap}
   td.mono{white-space:nowrap}
-  thead th:first-child,tbody td:first-child{min-width:262px}
+  thead th:first-child,tbody td:first-child{min-width:214px}
   .cpf{color:var(--text-2);font-size:12.5px}
   .dinheiro{font-weight:600}
   .tag{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;
@@ -188,10 +188,10 @@
     box-shadow:var(--shadow-lg)}
   .dica-graf.on{opacity:1}
   .graf-vazio{color:var(--text-3);font-size:12.5px;padding:14px 0}
-  select.st{padding:5px 8px;border-radius:7px;border:1px solid var(--border-strong);font-size:12px;
-    font-weight:600;background:var(--surface);max-width:170px}
-  .acoes{display:flex;gap:5px;align-items:center}
-  .ico{width:30px;height:30px;border-radius:7px;border:1px solid var(--border);background:var(--surface);
+  select.st{padding:5px 6px;border-radius:7px;border:1px solid var(--border-strong);font-size:12px;
+    font-weight:600;background:var(--surface);max-width:148px}
+  .acoes{display:flex;gap:4px;align-items:center}
+  .ico{width:28px;height:28px;border-radius:7px;border:1px solid var(--border);background:var(--surface);
     display:grid;place-items:center;padding:0}
   .ico:hover{background:var(--surface-2);border-color:var(--border-strong)}
   .ico.zap{color:#0f7043;border-color:#c5e6d3;background:var(--venda-bg)}
@@ -406,9 +406,9 @@ window.HORAS_VALIDADE = 24;
           <table>
             <thead>
               <tr>
-                <th>Cliente</th><th>Nasc. / Idade</th><th>Telefone</th><th>Autorização</th>
-                <th>Prazo</th><th>Parcela</th><th>Valor liberado</th>
-                <th>Situação</th><th>Banco</th><th>Responsável</th><th>Observação</th><th></th>
+                <th>Cliente</th><th>Nascimento</th><th>Telefone</th><th>Autorizado</th>
+                <th>Prazo</th><th>Parcela</th><th>Liberado</th>
+                <th>Situação</th><th>Banco</th><th>Resp.</th><th>Obs.</th><th></th>
               </tr>
             </thead>
             <tbody id="tbody"></tbody>
@@ -1009,7 +1009,7 @@ function linha(l){
     <td class="mono dinheiro">${l.valorLiberado?fmtMoeda(l.valorLiberado):"—"}</td>
     <td>${selStatus(l)}</td>
     <td class="banco-cel">${esc(l.banco||"")||'<span style="color:var(--text-3)">—</span>'}</td>
-    <td class="resp">${l.respNome?`<b>${esc(l.respNome)}</b><br><span style="color:var(--text-3);font-size:11px">${dataHora(l.atualizadoEm)}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
+    <td class="resp">${l.respNome?`<b title="${esc(l.respNome)}">${esc(l.respNome.split(" ")[0])}</b><br><span style="color:var(--text-3);font-size:11px">${dataHora(l.atualizadoEm)}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
     <td><div class="obs-prev" title="${esc(l.obs||"")}">${esc(l.obs||"")||'<span style="color:var(--text-3)">—</span>'}</div></td>
     <td><div class="acoes">${botoesContato(l)}
       <button class="ico" data-ver="${l.id}" title="Abrir ficha">

@@ -452,7 +452,7 @@ window.HORAS_VALIDADE = 24;
 
     <!-- ---------- RESUMO ---------- -->
     <section class="painel" id="pResumo">
-      <div class="cx" id="cxExportVendas" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div class="cx soGestao" id="cxExportVendas" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <div style="flex:1;min-width:220px">
           <h2 style="margin:0">Exportar vendas</h2>
           <p class="d" style="margin:2px 0 0">Planilha só com as vendas finalizadas do lote selecionado: cliente, banco, vendedor, valor e data.</p>
@@ -467,13 +467,13 @@ window.HORAS_VALIDADE = 24;
         <div class="graf" id="grafSituacoes"></div>
       </div>
 
-      <div class="cx">
+      <div class="cx soGestao">
         <h2>Por vendedor</h2>
         <p class="d">Como está a carteira de cada pessoa, situação por situação. Passe o mouse para ver os números.</p>
         <div class="legenda" id="legendaStatus"></div>
         <div class="graf" id="grafVendedores"></div>
       </div>
-      <div class="cx">
+      <div class="cx soGestao">
         <h2>Desempenho por pessoa</h2>
         <p class="d">Conta os leads em que cada pessoa é a responsável, no lote selecionado na aba Leads.</p>
         <div class="tbl-wrap">
@@ -483,8 +483,18 @@ window.HORAS_VALIDADE = 24;
           </table>
         </div>
       </div>
+      <div class="cx soFoco hide" id="cxMinhasVendas">
+        <h2>Minhas vendas</h2>
+        <p class="d">Tudo o que você finalizou, da mais recente para a mais antiga.</p>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Cliente</th><th>Banco</th><th>Prazo</th><th>Parcela</th><th>Valor liberado</th><th>Fechada em</th></tr></thead>
+            <tbody id="tbodyMinhasVendas"></tbody>
+          </table>
+        </div>
+      </div>
       <div class="cx">
-        <h2>Vendas por banco</h2>
+        <h2 id="tituloBancos">Vendas por banco</h2>
         <p class="d">Somente os leads com venda finalizada.</p>
         <div class="tbl-wrap">
           <table>
@@ -493,7 +503,7 @@ window.HORAS_VALIDADE = 24;
           </table>
         </div>
       </div>
-      <div class="cx">
+      <div class="cx soGestao">
         <h2>Lotes importados</h2>
         <div class="tbl-wrap">
           <table>
@@ -586,6 +596,7 @@ window.HORAS_VALIDADE = 24;
             <select id="nuPerfil">
               <option value="vendedor">Vendedor — atualiza a situação dos leads</option>
               <option value="importador">Importador — importa as planilhas e acompanha</option>
+              <option value="vendgestor">Vendedor gestor — vende, vê todos os leads e transfere clientes</option>
               <option value="gestor">Gestor — só acompanha, não altera nada</option>
               <option value="admin">Administrador — faz tudo e gerencia usuários</option>
             </select>
@@ -672,9 +683,10 @@ const STATUS={
 };
 const ORDEM_ST=["NOVO","CONTATO","SIMULACAO","REPROVADO","VENDA"];
 const PERFIS={
-  admin:      {rot:"Administrador", importa:true,  altera:true,  usuarios:true,  exporta:true,  exportaVendas:true,  pede:false},
+  admin:      {rot:"Administrador", importa:true,  altera:true,  usuarios:true,  exporta:true,  exportaVendas:true,  pede:false, transfere:true},
   importador: {rot:"Importador",    importa:true,  altera:false, usuarios:false, exporta:true,  exportaVendas:false, pede:false},
-  vendedor:   {rot:"Vendedor(a)",   importa:false, altera:true,  usuarios:false, exporta:false, exportaVendas:false, pede:true},
+  vendedor:   {rot:"Vendedor(a)",   importa:false, altera:true,  usuarios:false, exporta:false, exportaVendas:false, pede:true, foco:true},
+  vendgestor: {rot:"Vendedor(a) gestor(a)", importa:false, altera:true, usuarios:false, exporta:true, exportaVendas:true, pede:true, transfere:true},
   gestor:     {rot:"Gestor(a)",     importa:false, altera:false, usuarios:false, exporta:true,  exportaVendas:true,  pede:false}
 };
 /* quantas horas depois da criação o lead sem contato passa a "esfriando" */
@@ -907,6 +919,12 @@ onAuthStateChanged(auth,async u=>{
   el("uAvatar").textContent=(S.perfil.nome||S.user.email||"?").trim()[0].toUpperCase();
   document.querySelectorAll(".soAdmin").forEach(e2=>e2.classList.toggle("hide",!S.pode.usuarios));
   document.querySelectorAll(".podeImportar").forEach(e2=>e2.classList.toggle("hide",!S.pode.importa));
+  const foco=!!S.pode.foco;
+  show("fMes",!foco); show("fLote",!foco);
+  document.querySelectorAll(".soGestao").forEach(e2=>e2.classList.toggle("hide",foco));
+  document.querySelectorAll(".soFoco").forEach(e2=>e2.classList.toggle("hide",!foco));
+  document.querySelector('.aba[data-p="leads"]').textContent=foco?"Minha fila":"Leads";
+  document.querySelector('.aba[data-p="resumo"]').textContent=foco?"Meus resultados":"Resumo";
   show("btnExportar",S.pode.exporta);
   show("cxExportVendas",S.pode.exportaVendas);
   show("btnPedirLeads",S.pode.pede);
@@ -918,6 +936,7 @@ onAuthStateChanged(auth,async u=>{
   if(S.pode.altera||S.pode.importa) ouvirSimulacoes();
   if(S.pode.importa){ ouvirPedidos(); show("btnAtivarAviso",!S.avisoOk&&"Notification" in window); }
   if(S.pode.usuarios){ ouvirUsuarios(); ouvirResets(); }
+  else if(S.pode.transfere) ouvirUsuarios();
   if(S.relogio) clearInterval(S.relogio);
   S.relogio=setInterval(()=>{ if(S.leads.length&&el("pLeads").classList.contains("on")) pintar(); },60000);
 });
@@ -995,12 +1014,19 @@ function recarregaLeads(){
 }
 
 /* ===================== FILTROS ===================== */
+/* vendedor só trabalha o que é dele ou está livre; o que é de colega não entra na fila */
+function baseLeads(){
+  if(!S.pode.foco) return S.leads;
+  return S.leads.filter(l=>l.respUid===S.user.uid||(!l.respUid&&(l.status||"NOVO")==="NOVO"));
+}
+function meusLeads(){ return S.pode.foco?S.leads.filter(l=>l.respUid===S.user.uid):S.leads; }
 el("fBusca").oninput=e=>{S.filtro.busca=norm(e.target.value);S.pag=1;pintar();};
 el("fPorPag").onchange=e=>{S.porPag=+e.target.value;S.pag=1;pintar();};
 
 function filtrados(){
   const f=S.filtro;
-  let r=S.leads.filter(l=>{
+  let r=baseLeads().filter(l=>{
+    if(S.pode.foco&&!f.status&&!f.busca&&["VENDA","REPROVADO"].includes(l.status||"NOVO")) return false;
     if(f.status&&(l.status||"NOVO")!==f.status) return false;
     if(f.marca==="quente"&&!QUENTES.has(l.id)) return false;
     if(f.marca==="parado"&&paradoHa(l)===null) return false;
@@ -1034,11 +1060,11 @@ function filtrados(){
 }
 /* os 15% com autorizacao mais recente, ainda validos */
 function marcarQuentes(lista){
-  const comData=S.leads.filter(l=>l.validoAte).map(l=>new Date(l.validoAte).getTime()).sort((a,b)=>b-a);
+  const comData=baseLeads().filter(l=>l.validoAte).map(l=>new Date(l.validoAte).getTime()).sort((a,b)=>b-a);
   if(!comData.length) return new Set();
   const corte=comData[Math.max(0,Math.min(comData.length-1,Math.floor(comData.length*0.15)))];
   const q=new Set();
-  S.leads.forEach(l=>{
+  baseLeads().forEach(l=>{
     if(!l.validoAte) return;
     const t=new Date(l.validoAte).getTime();
     if(t>=corte&&t>Date.now()&&(l.status||"NOVO")==="NOVO") q.add(l.id);
@@ -1053,7 +1079,7 @@ function pintar(){
   pintarKpis();
   const lista=filtrados();
   el("chipQtd").textContent=fmtNum(lista.length)+(lista.length===1?" lead":" leads");
-  el("tituloLista").textContent=S.mes?"Leads · "+(S.loteAtual?S.loteAtual:rotMes(S.mes)):"Leads";
+  el("tituloLista").textContent=S.pode.foco?"Minha fila de vendas":S.mes?"Leads · "+(S.loteAtual?S.loteAtual:rotMes(S.mes)):"Leads";
 
   const total=lista.length,pp=S.porPag,nPg=Math.max(1,Math.ceil(total/pp));
   if(S.pag>nPg) S.pag=nPg;
@@ -1277,16 +1303,42 @@ function abrirFicha(id){
         <select id="fiStatus">${ORDEM_ST.map(s=>`<option value="${s}" ${s===st?"selected":""}>${STATUS[s].rot}</option>`).join("")}</select>
         <div class="dica">Deixe como está para só guardar a observação. Simulação e venda pedem o banco; reprovado pede o motivo.</div></div>
       <div id="fiErro" class="aviso aviso-erro hide"></div>`:""}
+      ${S.pode.transfere&&S.pode.altera?`
+      <div class="campo" style="border-top:1px dashed var(--border);padding-top:14px">
+        <label>Transferir este cliente para</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select id="fiTransf" style="flex:1;min-width:200px">
+            <option value="">Escolha o vendedor…</option>
+            ${vendedoresTransf().filter(u=>u.uid!==l.respUid).map(u=>`<option value="${u.uid}">${esc(u.nome||u.email)}${u.uid===S.user.uid?" (eu)":""}</option>`).join("")}
+          </select>
+          <button class="btn" id="fiTransfBtn">Transferir</button>
+        </div>
+        <div class="dica">O cliente passa a aparecer na fila da pessoa escolhida. Fica registrado no histórico.</div></div>`:""}
       <div class="hist">
         <h4>Histórico</h4>
         ${hist.length?hist.map(h=>`<div class="hist-i">
-            <span class="q"><b>${esc(h.quem||"—")}</b> mudou para <b>${STATUS[h.para]?STATUS[h.para].rot:esc(h.para)}</b>${h.banco?` · ${esc(h.banco)}`:""}</span>
+            <span class="q">${h.transf
+              ?`<b>${esc(h.quem||"—")}</b> transferiu de <b>${esc(h.deNome||"ninguém")}</b> para <b>${esc(h.paraNome||"—")}</b>`
+              :`<b>${esc(h.quem||"—")}</b> mudou para <b>${STATUS[h.para]?STATUS[h.para].rot:esc(h.para)}</b>${h.banco?` · ${esc(h.banco)}`:""}`}</span>
             <span class="w">${dataHora(h.quando)}</span></div>`).join("")
           :'<div style="color:var(--text-3);font-size:12.5px">Sem movimentações ainda.</div>'}
       </div>`,
     pe:`${z?`<a class="btn" href="${z}" target="_blank" rel="noopener">Abrir WhatsApp</a>`:""}
         ${S.pode.altera?`<button class="btn btn-primary" id="fiSalvar">Salvar</button>`:""}`
   });
+  if(S.pode.transfere&&S.pode.altera&&el("fiTransfBtn")) el("fiTransfBtn").onclick=async()=>{
+    const uid=el("fiTransf").value; if(!uid){ toast("Escolha para quem transferir."); return; }
+    const u=S.usuarios.find(x=>x.uid===uid); if(!u) return;
+    el("fiTransfBtn").disabled=true;
+    try{
+      await updateDoc(doc(db,"lotes",l._lote,"leads",l._cpf),{
+        respUid:u.uid, respNome:u.nome||u.email, atualizadoEm:serverTimestamp(),
+        historico:arrayUnion({quando:new Date().toISOString(),transf:true,de:l.status||"NOVO",para:l.status||"NOVO",
+          deNome:l.respNome||"",paraNome:u.nome||u.email,quem:S.perfil.nome||S.user.email,uid:S.user.uid})
+      });
+      toast("Cliente transferido para "+(u.nome||u.email)+"."); fechar();
+    }catch(err){ toast("Não consegui transferir: "+msgErro(err)); el("fiTransfBtn").disabled=false; }
+  };
   if(S.pode.altera){
     el("fiObs").oninput=()=>{
       const v=(el("fiObs").value||"").trim();
@@ -1322,12 +1374,13 @@ function contagens(lista){
   return {c,vendido,total:lista.length};
 }
 function pintarKpis(){
-  const {c,vendido,total}=contagens(S.leads);
+  const base=baseLeads(), foco=!!S.pode.foco;
+  const {c,vendido,total}=contagens(base);
   const trab=total-c.NOVO, conv=trab?(c.VENDA/trab*100):0;
   const quentes=QUENTES.size;
-  const esfriando=S.leads.filter(l=>paradoHa(l)!==null).length;
+  const esfriando=base.filter(l=>paradoHa(l)!==null).length;
   const m=S.filtro.marca, st=S.filtro.status;
-  const pc=s=>total?((c[s]/total)*100).toFixed(1).replace(".",",")+"% do lote":"—";
+  const pc=s=>foco?"":(total?((c[s]/total)*100).toFixed(1).replace(".",",")+"% do lote":"—");
   const card=(s,rot,sub,subStyle)=>`<div class="kpi ${(!m&&st===s)?"on":""}" data-kpi="${s}">
       <div class="lbl"><span class="pt" style="background:${STATUS[s].cor}"></span>${rot}</div>
       <div class="val">${fmtNum(c[s])}</div>
@@ -1343,12 +1396,12 @@ function pintarKpis(){
         esfriando?`style="color:var(--parado);font-weight:600"`:"")
     +card("CONTATO","1º contato realizado aguard. resposta")
     +card("SIMULACAO","Simulação enviada acompanhar")
-    +card("VENDA","Venda finalizada")
-    +card("REPROVADO","Reprovado")
+    +card("VENDA",foco?"Minhas vendas":"Venda finalizada")
+    +(foco?"":card("REPROVADO","Reprovado"))
     +`<div class="kpi" style="cursor:default"><div class="lbl">Conversão</div>
         <div class="val">${conv.toFixed(1).replace(".",",")}%</div><div class="sub">vendas ÷ trabalhados</div></div>
       <div class="kpi" style="cursor:default"><div class="lbl">Valor vendido</div>
-        <div class="val" style="font-size:19px">${fmtMoeda(vendido)}</div><div class="sub">soma do valor liberado</div></div>`;
+        <div class="val" style="font-size:19px">${fmtMoeda(vendido)}</div><div class="sub">${foco?"o que você já fechou":"soma do valor liberado"}</div></div>`;
 }
 /* clicar no card filtra; clicar de novo no mesmo card tira o filtro */
 el("kpis").onclick=e=>{
@@ -1365,16 +1418,17 @@ el("kpis").onclick=e=>{
   S.pag=1; pintar();
 };
 function pintarResumo(){
-  grafSituacoes(); grafVendedores();
-  const {c,vendido,total}=contagens(S.leads);
+  const foco=!!S.pode.foco, meus=meusLeads();
+  grafSituacoes(); if(!foco) grafVendedores();
+  const {c,vendido,total}=contagens(meus);
   const trab=total-c.NOVO, conv=trab?(c.VENDA/trab*100):0;
   el("kpisResumo").innerHTML=
-    `<div class="kpi" style="cursor:default"><div class="lbl">Leads no lote</div><div class="val">${fmtNum(total)}</div></div>
-     <div class="kpi" style="cursor:default"><div class="lbl">Trabalhados</div><div class="val">${fmtNum(trab)}</div><div class="sub">${total?(trab/total*100).toFixed(0):0}% do lote</div></div>
+    `<div class="kpi" style="cursor:default"><div class="lbl">${foco?"Meus leads":"Leads no lote"}</div><div class="val">${fmtNum(total)}</div></div>
+     <div class="kpi" style="cursor:default"><div class="lbl">Trabalhados</div><div class="val">${fmtNum(trab)}</div><div class="sub">${total?(trab/total*100).toFixed(0):0}% ${foco?"da minha carteira":"do lote"}</div></div>
      <div class="kpi" style="cursor:default"><div class="lbl">Vendas</div><div class="val">${fmtNum(c.VENDA)}</div><div class="sub">conversão ${conv.toFixed(1).replace(".",",")}%</div></div>
      <div class="kpi" style="cursor:default"><div class="lbl">Valor vendido</div><div class="val" style="font-size:19px">${fmtMoeda(vendido)}</div></div>`;
   const por={};
-  S.leads.forEach(l=>{
+  if(!foco) S.leads.forEach(l=>{
     if(!l.respUid) return;
     por[l.respUid] ||= {nome:l.respNome||"—",t:0,CONTATO:0,SIMULACAO:0,REPROVADO:0,VENDA:0,v:0};
     const s=l.status||"NOVO", p=por[l.respUid];
@@ -1390,8 +1444,16 @@ function pintarResumo(){
       <td class="mono">${cv.toFixed(1).replace(".",",")}%</td><td class="mono dinheiro">${fmtMoeda(p.v)}</td></tr>`;
   }).join(""):`<tr><td colspan="8" style="color:var(--text-3);padding:18px;text-align:center">Ninguém atualizou leads desse lote ainda.</td></tr>`;
 
+  el("tituloBancos").textContent=foco?"Minhas vendas por banco":"Vendas por banco";
+  if(foco){
+    const mv=meus.filter(l=>(l.status||"")==="VENDA").sort((a,b)=>(b.atualizadoEm?.seconds||0)-(a.atualizadoEm?.seconds||0));
+    el("tbodyMinhasVendas").innerHTML=mv.length?mv.map(l=>`<tr><td class="nome-cel">${esc(l.nome||"")}</td><td>${esc(l.banco||"—")}</td>
+      <td class="mono">${esc(l.prazo||"")}</td><td class="mono">${fmtMoeda(Number(l.parcela)||0)}</td>
+      <td class="mono dinheiro">${fmtMoeda(Number(l.valorLiberado)||0)}</td><td>${dataHora(l.atualizadoEm)}</td></tr>`).join("")
+      :`<tr><td colspan="6" style="color:var(--text-3);padding:18px;text-align:center">Nenhuma venda ainda. Bora fechar a primeira!</td></tr>`;
+  }
   const bk={};
-  S.leads.forEach(l=>{ if((l.status||"")!=="VENDA") return;
+  meus.forEach(l=>{ if((l.status||"")!=="VENDA") return;
     const b=(l.banco||"não informado").trim();
     bk[b] ||= {n:0,v:0}; bk[b].n++; bk[b].v+=Number(l.valorLiberado)||0; });
   const ba=Object.entries(bk).sort((a,b)=>b[1].v-a[1].v);
@@ -1415,7 +1477,7 @@ document.addEventListener("mouseout",e=>{
   if(e.target.closest("[data-tip]")) dica.classList.remove("on");
 });
 function grafSituacoes(){
-  const {c,total}=contagens(S.leads);
+  const {c,total}=contagens(meusLeads());
   if(!total){ el("grafSituacoes").innerHTML=`<div class="graf-vazio">Nenhum lead nesse lote.</div>`; return; }
   el("grafSituacoes").innerHTML=ORDEM_ST.map(s=>{
     const n=c[s], pc=n/total*100;
@@ -2013,6 +2075,10 @@ el("btnAtivarAviso").onclick=async()=>{
 };
 
 /* ===================== USUÁRIOS ===================== */
+/* quem pode receber cliente: vendedores e vendedores gestores ativos */
+function vendedoresTransf(){
+  return S.usuarios.filter(u=>u.ativo!==false&&["vendedor","vendgestor"].includes(u.perfil));
+}
 function ouvirUsuarios(){
   S.unsubUsrs=onSnapshot(collection(db,"usuarios"),snap=>{
     S.usuarios=snap.docs.map(d=>({uid:d.id,...d.data()}))
@@ -2022,7 +2088,9 @@ function ouvirUsuarios(){
       <td class="nome-cel">${esc(u.nome||"—")}</td>
       <td class="mono">${esc(u.login||"—")}</td>
       <td>${esc(u.email||"—")}</td>
-      <td><span class="tag ${u.perfil==="admin"?"t-CONTATO":u.perfil==="gestor"?"t-SIMULACAO":u.perfil==="importador"?"t-VENDA":"t-NOVO"}">${(PERFIS[u.perfil]||{}).rot||u.perfil}</span></td>
+      <td>${(S.pode.usuarios&&u.uid!==S.user.uid)
+        ?`<select class="sel" data-perfil="${u.uid}" style="padding:5px 8px;font-size:12px">${Object.entries(PERFIS).map(([k,v])=>`<option value="${k}" ${k===u.perfil?"selected":""}>${v.rot}</option>`).join("")}</select>`
+        :`<span class="tag ${u.perfil==="admin"?"t-CONTATO":u.perfil==="gestor"?"t-SIMULACAO":u.perfil==="importador"?"t-VENDA":"t-NOVO"}">${(PERFIS[u.perfil]||{}).rot||u.perfil}</span>`}</td>
       <td><span class="tag ${u.ativo===false?"t-REPROVADO":"t-VENDA"}">${u.ativo===false?"Inativo":"Ativo"}</span></td>
       <td><div class="acoes">
         <button class="btn btn-sm" data-senha="${esc(u.email)}">Enviar nova senha</button>
@@ -2052,6 +2120,11 @@ el("listaResets").onclick=async e=>{
   const o=e.target.closest("[data-okreset]");
   if(o){ try{ await updateDoc(doc(db,"resets",o.getAttribute("data-okreset")),{atendido:true});
     }catch(err){ toast(msgErro(err)); } }
+};
+el("tbodyUsrs").onchange=async e=>{
+  const sel=e.target.closest("[data-perfil]"); if(!sel) return;
+  try{ await updateDoc(doc(db,"usuarios",sel.dataset.perfil),{perfil:sel.value});
+    toast("Perfil alterado. A pessoa precisa entrar de novo para valer."); }catch(err){ toast(msgErro(err)); }
 };
 el("tbodyUsrs").onclick=async e=>{
   const s=e.target.closest("[data-senha]");

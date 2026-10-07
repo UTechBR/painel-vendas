@@ -251,6 +251,46 @@
     border-radius:50%;animation:gira .7s linear infinite}
   @keyframes gira{to{transform:rotate(360deg)}}
 
+  /* ---------- Bancos prováveis e roteiros ---------- */
+  .bchips{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px;max-width:250px}
+  .bchip{display:inline-block;border:1px solid #ddd3fb;background:var(--nego-bg);color:#5b21b6;border-radius:999px;
+    padding:0 8px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;line-height:1.55}
+  .bchip:hover{background:#e6dcfd}
+  .bchip.mais{background:var(--surface-2);border-color:var(--border);color:var(--text-2)}
+  .bsem{font-size:11px;color:var(--text-3);margin-top:4px}
+  .rot-lista{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+  .rot-btn{padding:6px 12px;border:1px solid var(--border-strong);border-radius:999px;background:var(--surface);
+    font-size:12.5px;font-weight:600;color:var(--text-2)}
+  .rot-btn:hover{border-color:var(--brand-2);color:var(--text)}
+  .rot-btn.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  .rot-btn.susp:not(.on){color:var(--cancel);border-color:#f0c4c6}
+  .rot-cab{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+  .rot-cab h2{margin:0;font-size:20px;letter-spacing:-.3px}
+  .rot-susp{background:var(--cancel-bg);color:var(--cancel);border:1px solid #f5cdd0;padding:2px 9px;border-radius:999px;
+    font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+  .rot-meta{color:var(--text-3);font-size:12px;margin-bottom:14px}
+  .rt-wrap{overflow-x:auto;margin:6px 0 12px;-webkit-overflow-scrolling:touch}
+  table.rt{width:100%;border:1px solid var(--border);border-radius:8px;border-collapse:separate;border-spacing:0;
+    overflow:hidden;margin:0;font-size:13px}
+  .rt td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:top;white-space:normal}
+  .rt tr:last-child td{border-bottom:none}
+  .rt tr.r2 td:first-child{width:34%;min-width:0;font-weight:700;font-size:11.5px;text-transform:uppercase;
+    letter-spacing:.3px;color:var(--text-2);background:var(--surface-2)}
+  .rt td:first-child{min-width:0}
+  .rt ul,.rot-ul{margin:0;padding-left:18px}
+  .rot-ul{margin:6px 0 12px}
+  .rt li,.rot-ul li{margin:2px 0}
+  .rot-h{margin:20px 0 6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--brand-2)}
+  .rot-p{margin:6px 0}
+  .rot-edit{width:100%;min-height:340px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.5;
+    padding:10px 12px;border:1px solid var(--border-strong);border-radius:8px;outline:none;resize:vertical}
+  .rot-edit:focus{border-color:var(--brand-2);box-shadow:0 0 0 3px rgba(240,124,31,.18)}
+  @media(max-width:600px){
+    .rt tr{display:block}
+    .rt tr.r2 td{display:block;width:100% !important}
+    .rt tr.r2 td:first-child{border-bottom:none;padding-bottom:3px}
+  }
+
   /* ---------- Cartões (mobile) ---------- */
   .cards{display:none}
   .card{border-bottom:1px solid var(--border);padding:13px 14px}
@@ -358,6 +398,7 @@ window.HORAS_VALIDADE = 24;
     <div class="abas-in" id="navAbas">
       <button class="aba on" data-p="leads">Leads</button>
       <button class="aba" data-p="resumo">Resumo</button>
+      <button class="aba" data-p="roteiros">Roteiros</button>
       <button class="aba podeImportar" data-p="importar">Importar planilha <span class="bolha hide" id="bolhaPedidos">0</span></button>
       <button class="aba soAdmin" data-p="usuarios">Usuários <span class="bolha hide" id="bolhaResets">0</span></button>
     </div>
@@ -384,6 +425,7 @@ window.HORAS_VALIDADE = 24;
           <option value="valorLiberado">Maior valor liberado</option>
           <option value="status">Situação</option>
         </select>
+        <select class="sel hide" id="fBancoProv" title="Bancos em que o cliente provavelmente é aprovado"><option value="">Bancos prováveis: todos</option></select>
         <button class="btn" id="btnPedirLeads">🙋 Pedir mais leads</button>
         <button class="btn" id="btnExportar">⬇ Exportar</button>
       </div>
@@ -474,6 +516,27 @@ window.HORAS_VALIDADE = 24;
       </div>
     </section>
 
+    <!-- ---------- ROTEIROS ---------- -->
+    <section class="painel" id="pRoteiros">
+      <div class="cx">
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <div style="flex:1;min-width:220px">
+            <h2 style="margin:0">Roteiros operacionais</h2>
+            <p class="d" style="margin:2px 0 0" id="rotFonte">Regras de cada banco para consultar durante o atendimento.</p>
+          </div>
+          <div class="busca" style="flex:0 1 300px;min-width:200px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="rotBusca" type="search" placeholder="Buscar banco ou regra (ex: token)">
+          </div>
+          <button class="btn btn-primary soAdmin" id="btnNovoRot">+ Novo banco</button>
+        </div>
+      </div>
+      <div class="cx">
+        <div class="rot-lista" id="rotLista"></div>
+        <div id="rotCorpo"></div>
+      </div>
+    </section>
+
     <!-- ---------- IMPORTAR ---------- -->
     <section class="painel" id="pImportar">
       <div class="cx hide" id="cxPedidos" style="border-color:#fbe0ab;background:linear-gradient(180deg,#fffaf0,#fff)">
@@ -485,6 +548,11 @@ window.HORAS_VALIDADE = 24;
       <div class="cx">
         <h2>Importar planilha de leads</h2>
         <p class="d">Aceita <b>.csv</b>, <b>.xlsx</b> e <b>.xls</b>. Os leads ficam visíveis para toda a equipe na hora.</p>
+        <details style="margin:-4px 0 14px;font-size:12.5px;color:var(--text-2)">
+          <summary style="cursor:pointer;font-weight:600">Layout esperado da planilha</summary>
+          <div style="margin-top:8px;line-height:1.6" id="layoutImp"></div>
+          <button class="btn btn-sm" id="btnModelo" style="margin-top:8px">⬇ Baixar planilha modelo</button>
+        </details>
         <div class="solta" id="solta">
           <div class="big">📄</div>
           <div style="font-weight:600;margin-bottom:4px">Arraste a planilha aqui</div>
@@ -633,12 +701,18 @@ const CAMPOS=[
   {k:"parcela",       rot:"Parcela",           obrig:false, alvos:["parcela","valor parcela"]},
   {k:"valorLiberado", rot:"Valor liberado",    obrig:false, alvos:["valor liberado","liberado","valor"]},
   {k:"validoAte",     rot:"Válido até",        obrig:false, alvos:["valido ate","válido até","validade","expira em"]},
-  {k:"whatsapp",      rot:"Possui WhatsApp",   obrig:false, alvos:["possui whatsapp","whatsapp","zap"]}
+  {k:"whatsapp",      rot:"Possui WhatsApp",   obrig:false, alvos:["possui whatsapp","whatsapp","zap"]},
+  {k:"bancosProv",    rot:"Prováveis bancos compatíveis", obrig:false, alvos:["provaveis bancos compativeis","provaveis bancos","bancos compativeis","bancos provaveis"]}
 ];
+/* layout padrão da planilha diária (mesma ordem das colunas) */
+const LAYOUT_IMPORT=["NOME","CPF","DATA NASCIMENTO","MATRÍCULA","PRAZO","PARCELA","VALOR LIBERADO","VÁLIDO ATÉ","TELEFONE HOT","POSSUI WHATSAPP","PROVÁVEIS BANCOS COMPATÍVEIS"];
+/* roteiros iniciais: RESUMO OPERACIONAL CLT (atualizado em 16/09/2026) */
+const ROTEIROS_FONTE="RESUMO OPERACIONAL CLT · PDF de 16/09/2026";
+const ROTEIROS_PADRAO=[{"nome": "Ágil", "suspenso": false, "conteudo": "PÚBLICO ALVO | Trabalhadores CLT (atende estrangeiro) Clientes Não Aceitos ; Com restrições cadastrais, como falência pessoal ou envolvimento em atividades ilícitas. ; PEP (Pessoas Expostas Politicamente). ; Com alerta de afastamento temporário ou aviso prévio. ; Com vínculos trabalhistas que possuam empréstimos consignados legados registrados no eSocial ou informados diretamente por instituições financeiras.\nTOKEN | Não possui.\nQUANTIDADE MÍNIMA DE FUNCIONÁRIOS NA EMPRESA E TEMPO DE CNPJ ATIVO | Quantidade de Funcionários: A partir de 20 funcionários. ; Tempo de CNPJ: A empresa deve obter o CNPJ ativo por no mínimo 2 anos.\nLIMITE DE CONTRATOS | 9 contratos por vínculo\nTAXA | 3,99% a 4,52%\nVÍNCULO EMPREGATÍCIO | No mínimo 12 meses na mesma empresa.\nIDADE | De 18 a 55 anos 11 meses e 29 dias.\nMARGEM CONSIGNÁVEL | Até 35%.\nPRAZO | De 15 a 35 meses. (Abaixo de 15 meses não será comissionado)\nVALOR | Mínimo: não possui (Parcela mínima de R$ 50,00) ; Máximo: R$ 30 mil.\nPOSSUI OPÇÃO DE SEGURO | Sim. O valor do seguro corresponde a 12,00% sobre o valor TOTAL do EMPRÉSTIMO CONSIGNADO\nAUTORIZAÇÃO | Após preencher os dados do cliente é enviado o link com o termo para dar o cliente dar o aceite. É possível copiar o link para o melhor envio.\nDOCUMENTOS ACEITOS | RG e CNH. RNE para estrangeiros.\nMEIO DE LIBERAÇÃO | Será depositado em até 24h após as análises internas, podendo ser por PIX ou TED (conta de titularidade do cliente).\n\nBANCOS NÃO ACEITOS PARA DEPÓSITOS:\n• Banco Neon\n• Conta ITI do ITAU\n• PagBank,\n• PagSeguro,\n• Neon Stone e Next\n• Banco XP\n• Contas Jurídicas (CNPJ)\n• Brasil Card (Conta Salário ou Pagamento)\n• Contas Salários/Pagamentos outros bancos"}, {"nome": "Amigoz", "suspenso": true, "conteudo": "PÚBLICO ALVO | Trabalhadores CLT ; Não atende analfabeto. ; Não atende estrangeiros.\nTOKEN | Não possui.\nQUANTIDADE MÍNIMA DE FUNCIONÁRIOS NA EMPRESA E TEMPO DE CNPJ ATIVO | Quantidade de Funcionários: A partir de 25 funcionários. ; Tempo de CNPJ: A empresa deve obter o CNPJ ativo por no mínimo 3 anos.\nLIMITE DE CONTRATOS | 9 contratos por vínculo\nTAXA | 4,99% ou 5,99%.\nVÍNCULO EMPREGATÍCIO | No mínimo 12 meses na mesma empresa.\nIDADE | Mulher: De 21 a 59 anos 11 meses e 29 dias. ; Homem: De 21 a 64 anos 11 meses e 29 dias.\nMARGEM CONSIGNÁVEL | Valor de margem é calculada em cima das verbas fixas.\nPRAZO | De 12, 24 e 36 meses.\nVALOR | Mínimo: R$ 500. ; Máximo: R$ 13 mil.\nPOSSUI OPÇÃO DE SEGURO | Sim. Clique aqui e saiba mais.\nAUTORIZAÇÃO | Após preencher os dados do cliente é enviado o link com o termo para dar o cliente dar o aceite. É possível copiar o link para o melhor envio.\nDOCUMENTOS ACEITOS | RG e CNH\nMEIO DE LIBERAÇÃO | Será depositado em até 24h após as análises internas, podendo ser por PIX ou TED (conta de titularidade do cliente).\n\nMais informações:\n• Situação funcional - Se constar data de desligamento ou data fim do contrato, aviso de\nafastamento ou aviso prévio, será recusado.\n• Não será atendido os seguintes setores: Desmatamento / Trabalho infantil e Condições análogas à\nescravidão / Impacto Ambiental e indústria poluente / Corrupção e Lavagem de dinheiro |\nIndústria de Aposta e jogos de Azar / Tecnologia e Proteção de dados / Atividades Controversas |\nCallcenter / Administração Pública, Defesa e Seguridade Social / Atividades de Organizações\nAssociativas.\n• O CPF precisa estar com o status de regular.\n• PEP (pessoas exposta politicamente) não serão aceitas.\n• Imprescindível informar e-mail correto, endereço e dados bancários"}, {"nome": "Banco do Brasil", "suspenso": false, "conteudo": "BAN PÚBLICO ALVO | NCO DO BRASIL ; Clientes Banco do Brasil – Correntistas (obrigatório abertura de conta caso não seja cliente correntista). ; Trabalhadores CLT ; Não atende analfabeto. ; Não atende estrangeiro.\nTOKEN | Não possui.\nQUANTIDADE MÍNIMA DE FUNCIONÁRIOS NA EMPRESA E TEMPO DE CNPJ ATIVO | Não exige.\nLIMITE DE CONTRATOS | 9 contratos por vínculo (Apenas Crédito Novo)\nTAXA | De 2,54% até 3,99%\nVÍNCULO EMPREGATÍCIO | No mínimo 6 meses na mesma empresa.\nIDADE | De 18 a 80 anos. (Para abertura de conta é permitido somente até 70 anos).\nMARGEM CONSIGNÁVEL | Limite de 35% (100% da margem disponível para utilização de acordo com análise do banco).\nPRAZO | De 18 a 96 meses.\nVALOR | A partir de R$ 100,00.\nPOSSUI OPÇÃO DE SEGURO | Sim.\nAUTORIZAÇÃO | Necessário autorizar a CTPS digital antes da simulação.\nDOCUMENTOS ACEITOS | Não é exigido documentação na contratação.\nMEIO DE LIBERAÇÃO | Obrigatório abertura de conta caso não seja cliente correntista. ; Em até 30 minutos após \"duplo sim“.\nREFINANCIAMENTO CLT | Poderão ser renovadas apenas um único contrato por proposta. Disponível renovar linhas não consignaveis e crédito CLT."}, {"nome": "BMG", "suspenso": false, "conteudo": "PÚBLICO ALVO | Trabalhadores CLT ; Clientes estrangeiros serão atendidos, desde que estejam dentro das regras.\nTOKEN | Não possui.\nQUANTIDADE MÍNIMA DE FUNCIONÁRIOS NA EMPRESA E TEMPO DE CNPJ ATIVO | CNPJ regular e a partir de 2 anos ativo.\nLIMITE DE CONTRATOS | 9 contratos por CPF.\nTAXA | 4,52%\nVÍNCULO EMPREGATÍCIO | No mínimo 12 meses na mesma empresa.\nIDADE | De 18 a 70 anos.\nMARGEM CONSIGNÁVEL | Até 80% da margem disponível.\nPRAZO | De 12 a 60 meses.\nVALOR | De R$ 500,00 a R$ 36.000,00\nPOSSUI OPÇÃO DE SEGURO | Sim, clique aqui e saiba mais\nAUTORIZAÇÃO | Autorização da CTPS Digital via token no celular (número exclusivo do cliente)\nDOCUMENTOS ACEITOS | Não é exigido documentação na contratação.\nMEIO DE LIBERAÇÃO | Via PIX ou TED"}, {"nome": "C6 Consig", "suspenso": false, "conteudo": "# MARGEM LIVRE\nPÚBLICO ALVO | Trabalhador apto para contratação de acordo com a normativa do governo. ; Empregado privado contratado pela CLT ; Não atende analfabeto. ; Atende estrangeiro residente nacional com RNE.\nTOKEN | O Token é enviado via SMS, evitar de solicitar reenvios para não correr o risco de travar a operação.\nQUANTIDADE MÍNIMA DE FUNCIONÁRIOS NA EMPRESA E TEMPO DE CNPJ ATIVO | Quantidade de Funcionários: É necessário simular para validação interna do banco. ; Tempo de CNPJ: A empresa deve obter o CNPJ ativo por no mínimo 2 anos.\nLIMITE DE CONTRATOS | Até 9 contratos por CPF.\nTAXA | Variável é necessário simular no sistema.\nVÍNCULO EMPREGATÍCIO | A partir de 3 meses (Necessário simular)\nIDADE | De 21 a 60 anos.\nMARGEM CONSIGNÁVEL | Limite de 35% (100% da margem disponível para utilização de acordo com análise do banco).\nPRAZO | De 6 a 48 meses\nVALOR | De R$ 700,00 a R$ 120 mil\nPOSSUI OPÇÃO DE SEGURO | Sim, clique aqui e saiba mais.\nAUTORIZAÇÃO | Não é necessária autorização.\nDOCUMENTOS ACEITOS | RG, CNH, RNE, CRNM ou Carteira de Classe.\nMEIO DE LIBERAÇÃO | Via PIX nas instituições financeiras aceitas conforme tabela à seguir.\n\n# REFINANCIAMENTO\nTIPO DE OPERAÇÃO | Refinanciamento\nTIPO DE PRODUTO | Refinanciamento de Carteira\nIDADE | De 21 a 60 anos\nMEIOS DE LIBERAÇÃO | Via PIX\nVALOR | De R$ 700,00 a R$ 50 mil\nGARANTIA | Margem consignável, e em caso de demissão involuntária, FGTS e Verbas Rescisórias\nTAXA DE JUROS | De acordo com perfil do cliente\nREDUÇÃO DE PARCELA | Sim\nPRAZO | De 18 a 48 meses\nAGREGA | Não\nLIMITE DE CONTRATOS | Até 9 por CPF\nUNIFICA | Não\nCARÊNCIA | N/A\nMÍNIMO DE PARCELAS PAGAS | 2 pagas\nFORMALIZAÇÃO | Digital Web\nVALOR MÍNIMO FINANCIADO | R$ 2.000,00\nREPRESENTANTE LEGAL | Não\nTROCO MÍNIMO | 5% do valor financiado ou R$ 700,00 prevalecendo o menor valor.\nTARIFA DE CADASTRO | Não permitido\nMARGEM NEGATIVA | N/A\n\nBANCO | AGÊNCIA(S)\n033 – Santander Digital | Conta começa com “77”\n104 – Caixa Tem | 3880\n237 – Next/Bradesco | 3750,3728,3929,3925,7320,7160,7802,617 6,7526,7615,3738,3737.\n341 – Itaú | 500\n655 – Neon/Votorantim | 655\n\nBancos aceitos para liberação do crédito: Agências não autorizadas para efetuar pagamento:"}, {"nome": "Crefaz", "suspenso": false, "conteudo": "PÚBLICO ALVO | Trabalhador apto para contratação de acordo com a normativa do governo. ; Empregado privado contratado pela CLT ; Não atende analfabetos e estrangeiros.\nTOKEN | Não possui\nQUANTIDADE MÍNIMA DE FUNCIONÁRIOS NA EMPRESA E TEMPO DE CNPJ ATIVO | CNPJ ativo por no mínimo 6 anos.\nLIMITE DE CONTRATOS | Conforme margem.\nTAXA | 4,49% a 4,95%\nVÍNCULO EMPREGATÍCIO | Mínimo de 6 meses\nIDADE | Mulheres: De 18 a 60 anos, 11 meses. ; Homens: De 18 a 63 anos, 11 meses.\nMARGEM CONSIGNÁVEL | Até 30% da margem bruta.\nPRAZO | De 12 a 48 meses\nVALOR | Mínimo: R$ 1 mil ; Máximo: R$ 25 mil\nPOSSUI OPÇÃO DE SEGURO | Não.\nAUTORIZAÇÃO | Será enviado um link via SMS ou Whatsapp\nDOCUMENTOS ACEITOS | RG, CNH ou CIN.\nMEIO DE LIBERAÇÃO | Em conta disponibilizada pelo cliente no momento da formalização via PIX."}, {"nome": "Facta", "suspenso": false, "conteudo": "PÚBLICO ALVO | Trabalhador apto para contratação de acordo com a normativa do governo. ; Empregado privado contratado pela CLT ; Não atende analfabetos e estrangeiros.\nTOKEN | O Token é enviado via SMS, evitar de solicitar reenvio para não correr o risco de travar a operação.\nQUANTIDADE MÍNIMA DE FUNCIONÁRIOS NA EMPRESA E TEMPO DE CNPJ ATIVO | CNPJ ativo por no mínimo 5 anos.\nLIMITE DE CONTRATOS | 9 contratos por CPF.\nTAXA | Até 4,52% varia conforme score do cliente.\nVÍNCULO EMPREGATÍCIO | Mínimo de 10 meses\nIDADE | Mulheres: De 21 a 57 anos, 11 meses e 29 dias. ; Homens: De 21 a 62 anos, 11 meses e 29 dias.\nMARGEM CONSIGNÁVEL | Até 70% da margem disponível (Não precisa calcular, a análise de crédito já puxa o valor total aprovado na digitação)\nPRAZO | De 24 a 60 meses\nVALOR | Mínimo: R$ 500,00 ; Máximo: R$ 26 mil (Veja tabela a seguir)\nPOSSUI OPÇÃO DE SEGURO | Seguro prestamista incluso na operação.\nAUTORIZAÇÃO | Necessário que cliente autorize no Gov antes da digitação.\nDOCUMENTOS ACEITOS | CPF ou RG (não será aceito qualquer documento digital que não seja CNH).\nMEIO DE LIBERAÇÃO | Em conta disponibilizada pelo cliente no momento da formalização via PIX ou TED.\n\nQUANTIDADE DE FUNCIONÁRIOS | VÍNCULO EMPREGATÍCIO | PRAZO EM MESES | VALOR MÍNIMO | VALOR MÁXIMO\n3 | De 10 a 11 meses | Mín. 36 / Máx. 36 | R$ 500,00 | R$ 3.000,00\n3 | De 12 a 17 meses | Mín. 24 / Máx. 24 | R$ 500,00 | R$ 4.000,00\n3 | De 18 a 23 meses | Mín. 24 / Máx. 24 | R$ 500,00 | R$ 9.000,00\n3 | De 24 a 35 meses | Mín. 24 / Máx. 36 | R$ 500,00 | R$ 15.000,00\n3 | De 36 a 60 meses | Mín. 24 / Máx. 48 | R$ 500,00 | R$ 26.000,00\n3 | De 61 a 120 meses | Mín. 24 / Máx. 60 | R$ 500,00 | R$ 26.000,00\n3 | De 121 a 999 meses | Mín. 24 / Máx. 60 | R$ 500,00 | R$ 26.000,00\n\nRISCO MÁXIMO POR CPF\n\nRestrições pessoa física (CPF):\n• Restrições não serão utilizadas como critério eliminatório, mas serão\nconsideradas na definição da oferta;\n• Score de crédito não será um filtro, mas servirá como indicador complementar\npara avaliação do perfil do cliente;\n• O vínculo do trabalhador deve estar ativo no sistema eSocial, ou seja, não pode\nhaver data de desligamento registrado;\n• Atualmente, são considerados elegíveis apenas as seguintes categorias de\ntrabalhador, conforme classificação do eSocial:\n• - 101 - Empregado Geral (inclusive empregados públicos celetistas da administração direta ou\nindireta);\n• - 721 - Contribuinte Individual - Diretor não empregado, com FGTS;\n• Funcionários com menos de 6 meses de vínculo trabalhista, deverão ter mais de\n25 anos de idade.\n\nREFINANCIAMENTO:\n• Neste primeiro momento, o produto de Refin CLT do Banco Facta não estará disponível para digitação direta\npelos parceiros.\n• Os refinanciamentos serão analisados e criados exclusivamente pelo BANCO nessa etapa inicial.\n• Os parceiros poderão acompanhar os contratos pelo status “aguarda assinatura digital”.\n• O Banco Também irá disponibilizar uma planilha com as AFS geradas, assim que finalizarem a criação desse\nmodelo de produto interno.\n• Somente os parceiros que já haviam ofertado o contrato original, terão visibilidade dessas oportunidades\npor enquanto.\n• Estamos em constante contato com o banco para entender a possibilidade de futura liberação com regras\noperacionais que viabilizem a digitação direta pelo parceiro. Assim que houver qualquer atualização,\ninformaremos prontamente.\nPORTABILIDADE:\n• Clique aqui e acesse o material exclusivo."}, {"nome": "Futuro", "suspenso": true, "conteudo": "PÚBLICO ALVO | Trabalhadores CLT ; Não atende analfabeto. ; Não atende estrangeiros.\nTOKEN | O FUTURO não possui token/API para validar margem; o cliente deve informar sua margem ou o parceiro pode usar a obtida em outro banco. O banco oferece simulador próprio, recomendado para uso antes da digitação, evitando o cadastro manual inicial.\nQUANTIDADE MÍNIMA DE FUNCIONÁRIOS NA EMPRESA E TEMPO DE CNPJ ATIVO | Tempo de CNPJ: A empresa deve obter o CNPJ ativo por no mínimo 2 anos.\nLIMITE DE CONTRATOS | Até 9 contratos por vínculo empregatício.\nTAXA | 4,52%\nVÍNCULO EMPREGATÍCIO | No mínimo 2 anos na mesma empresa (o banco tem flexibilidade pra alguns clientes com 1 ano de vinculo. Se o parceiro desejar, pode digitar também para clientes com 1 ano de atividade pois sempre será feito uma analise)\nIDADE | Mulheres: De 20 a 59 anos, 11 meses e 29 dias. ; Homens: De 20 a 61 anos, 11 meses e 29 dias.\nMARGEM CONSIGNÁVEL | 31,5% do salário sobre o liquido do trabalhador.\nPRAZO | De 01 a 36 meses\nVALOR | De: R$ 200,00 a R$ 12.000,00.\nPOSSUI OPÇÃO DE SEGURO | Não.\nAUTORIZAÇÃO | Autorizar a EAGLE SOCIEDADE DE CRÉDITO.\nDOCUMENTOS ACEITOS | RG, CNH, Carteira Funcional e Carteira Militar (inclusive versões digitais autenticadas).\nMEIO DE LIBERAÇÃO | Crédito na conta de titularidade do celetista via TED.\n\nPúblico não atendido:\n• MEI\n• Clientes com restrições cadastrais, falência ou atividades ilícitas\n• PEP (Pessoas Expostas Politicamente)\n• Estrangeiros\n\nPontos importantes na Digitação:\n• O Banco FUTURO não possui token ou API para validar automaticamente a\nmargem consignável correta do cliente. Dessa forma, o cliente deve\ninformar a margem que possui ao parceiro para que seja feita a simulação;\nou o parceiro pode utilizar a margem obtida em simulação realizada em\noutro banco.\n• O Banco FUTURO disponibiliza um simulador próprio, que deve ser\nutilizado sempre que necessário. Ele facilita o processo antes da digitação,\npois a simulação no sistema do banco exige previamente todo o cadastro\nmanual do cliente.\n\nPOLÍTICA DE IDADE\nTEMPO MÍNIMO DE TEMPO MÍNIMO\nPRAZO PRAZO LIMITE\nPÚBLICO IDADE INÍCIO DO CONTRATO ATIVIDADE NO DE ATIVIDADE DO MARGEM MÍNIMA\nMÍNIMO MÁXIMO OPERACIONAL\nVÍNCULO EMPREGADOR\n36\n24\nHOMENS De 20 a 61 anos, 11 meses e 29 dias 01 mês 2 anos 2 anos R$ 75,00 De 200 a 12 mil\n18\n12\n36\n24\nMULHERES De 20 a 59 anos, 11 meses e 29 dias 01 mês 2 anos 2 anos R$ 75,00 De 200 a 12 mil\n18\n12\n\n# BANCOS ACEITOS\nQualquer banco em conta de titularidade do trabalhador celetista."}, {"nome": "Fox", "suspenso": true, "conteudo": "AVERBADOR | Qi Tech (SUSPENSO) | Celcoin SUSPENSO\nValor de operação | De R$ 800,00 a R$ 8.500,00. | De R$ 500,00 a R$ 20.000,00.\nTempo de vínculo empregatício | No mínimo 3 meses. | No mínimo 12 meses.\nPrazo do contrato | De 6 a 24 meses conforme tabela a seguir. | De 6, 9, 12, 15, 18 ou 24 meses.\nTempo de constituição da empresa | No mínimo 3 anos. | No mínimo 2 anos.\nMínimo de Funcionários | 10 funcionários. | 10 funcionários ou faturamento anual de 3 milhões.\nLimite de Contratos | 1 contrato por CPF | 9 linhas por CPF – Até 2 contratos com a Fox\nIdade Mulher | 21 a 60 anos (ao final do contrato). | 21 a 60 anos.\nIdade Homem | 21 a 65 anos (ao final do contrato). | 21 a 65 anos.\nMargem liberada | 70% da margem total disponível | 70% da margem total disponível\nDocumentação aceita | CNH, RG, RNE, RNM, CTPS e Carteira Profissional | CNH, RG, RNE, RNM, CTPS e Carteira Profissional\nForma de liberação | Via PIX. | Via PIX\nAutorização | Tem que autorizar com o GOV junto com a carteira de trabalho. Um link será enviado para o número cadastrado. Depois, será exibido o documento do empregador (ou uma lista de opções, se houver). Selecione o documento correspondente e clique em 'Consultar’. Então, será realizada a consulta dos dados.\n\nAtende estrangeiros.\nNão atende analfabetos.\n100% das operações serão encaminhadas para vídeo.\n\nPontos importantes na Digitação:\n• Para digitar: Selecionar a opção Crédito Privado > Em seguida clicar\nna opção Crédito Novo\n• Logo no início da digitação será enviado um link para o cliente no\nnúmero cadastrado, será feito um pré cadastro. Nesta etapa já\nrealizamos a primeira análise de elegibilidade, por isso é fundamental\nque as informações estejam corretas.\n\n# BANCOS ACEITOS\nCÓDIGO | BANCO\nCÓDIGO | BANCO\n1 | BANCO DO BRASIL\n104 | CAIXA ECONÔMICA FEDERAL\n21 | BANESTES\n133 | CRESOL\n33 | SANTANDER\n237 | BRADESCO\n37 | BANPARÁ\n341 | ITAÚ UNIBANCO\n41 | BANRISUL\n389 | MERCANTIL\n47 | BANESE\n748 | SICREDI\n70 | BRB\n756 | SICOOB/BANCOOB\n85 | AILOS\n# BANCOS NÃO ACEITOS\nBANCO | AGÊNCIAS\n104 - CAIXA TEM | 3880\n237 - NEXT | 3728 3737 3738 3750 3929 6176 7160 7320 7526 7615 7802\n341 - ITI | 0500\n655 - NEON | 0655\n\nCliente que recebe por cartão magnético é aceita qualquer conta que\nseja de titularidade do cliente sendo poupança ou conta corrente."}, {"nome": "Hand+", "suspenso": false, "conteudo": "PÚBLICO ALVO | Trabalhadores CLT ; Não serão aceitos: PEP (pessoas expostas politicamente), CPF irregular na receita, funcionários com contrato com data- fim ou estagiários. ; Atende analfabetos e estrangeiros desde que tenha carteirinha definitiva.\nTOKEN | Não possui.\nQUANTIDADE MÍNIMA DE FUNCIONÁRIOS NA EMPRESA E TEMPO DE CNPJ ATIVO | Tempo de CNPJ ativo: Mínimo de 3 anos. ; Quantidade de Funcionários: Mínimo 50 funcionários ou 5 milhões de faturamento anual.\nLIMITE DE CONTRATOS | 1 contrato na UY3 + 4 em outra(s) instituições\nTAXA | 4,52%\nVÍNCULO EMPREGATÍCIO | No mínimo 12 meses na mesma empresa.\nIDADE | De 21 a 61 anos (Fim do contrato).\nMARGEM CONSIGNÁVEL | Até 70% da margem Dataprev (35% do salário líquido).\nPRAZO | De 18 a 48 meses.\nVALOR | Mínimo liberado: R$ 1.000,00 ; Máximo liberado: R$ 20 mil\nPOSSUI OPÇÃO DE SEGURO | Não.\nAUTORIZAÇÃO | O link é enviado via SMS, QR CODE, ou copiado via sistema, após 24 horas o link expira. (É obrigatório colocar o telefone do cliente na digitação.)\nDOCUMENTOS ACEITOS | RG , CNH E RNE.\nMEIO DE LIBERAÇÃO | Via PIX, o crédito pode ser feito em qualquer conta que seja de titularidade do cliente, obedecendo os bancos aceitos pela instituição conforme RO.\n\n# BANCOS NÃO ACEITOS\nCÓDIGO | BANCO\nCÓDIGO | BANCO\n33 | SANTANDER\n323 | MERCADO PAGO\n104 | CAIXA TEM (Agência 3880)\n340 | BANCO SUPERDIGITAL\n197 | STONE\n341 | ITI (Agência 500)\n213 | BANCO ARBI\n403 | CORA SCD\n218 | BANCO BS2\n461 | ASAAS\n237 | NEXT\n529 | PINKBANK BRASIL\n290 | PAGSEGURO\n634 | BANCO TRIÂNGULO"}, {"nome": "Happy", "suspenso": false, "conteudo": "PÚBLICO ALVO | Trabalhadores CLT ; Não atende analfabeto. ; Não atende estrangeiros.\nTOKEN | Não possui.\nQUANTIDADE MÍNIMA DE FUNCIONÁRIOS NA EMPRESA E TEMPO DE CNPJ ATIVO | Tempo de CNPJ ativo: Mínimo de 3 anos. Quantidade de Funcionários: Mínimo 30 funcionários.\nLIMITE DE CONTRATOS | 9 contrato por CPF.\nTAXA | 4,52%.\nVÍNCULO EMPREGATÍCIO | No mínimo 6 meses na mesma empresa.\nIDADE | Homens: De 21 a 65 anos. ; Mulheres: De 21 a 60 anos.\nMARGEM CONSIGNÁVEL | Até 90% da margem disponível, não precisa calcular, a análise de crédito já puxa o valor total aprovado na digitação (parcela mínima de R$ 75,00).\nPRAZO | De 18 a 48 meses.\nVALOR | De R$ 1.600,00 a R$ 30 mil.\nPOSSUI OPÇÃO DE SEGURO | Não.\nAUTORIZAÇÃO | O tomador recebe um SMS para assinar o termo de consentimento de dados. Com o termo assinado, é verificada a margem na Dataprev e o consultor segue com o cadastro.\nDOCUMENTOS ACEITOS | RG , CNH E RNE.\nMEIO DE LIBERAÇÃO | Será depositado em até 24 horas após as análises internas, podendo ser por PIX ou TED em conta de titularidade do cliente.\n\nNão serão aceitos clientes que se encontrem nas seguintes situações:\n• Restrição cadastral, com falência pessoal ou envolvimento em atividades ilícitas;\n• PEP (Pessoa Exposta Politicamente);\n• Clientes com algum impedimento/restrição interna;\n• Clientes com alerta de afastamento, aviso prévio ou com data fim de contrato\nregistrada;\n• Estagiários e temporários;\n• Vínculos empregatícios com empréstimos consignados ativos, caso o trabalhador\njá tenha um contrato vigente, ele precisará quitá-lo antes de contratar um novo.\n\nNão atende empresas que se encontrem nas seguintes situações/setores:\n• Empresas com recuperação judicial ou falência\n• Histórico de atraso no depósito do FGTS\n• Indústria de Armamentos e Defesa\n• Indústria do Tabaco e Cigarros\n• Impacto Ambiental e Indústria Poluente\n• Indústria de Aposta e Jogos de Azar\n• Atividades controversas\n\n# BANCOS ACEITOS\nCÓDIGO | BANCO\nCÓDIGO | BANCO\n1 | BANCO DO BRASIL\n237 | BRADESCO\n4 | BANCO DO NORDESTE DO BRASIL\n254 | PARANÁ BANCO\n21 | BANESTES\n341 | ITAÚ UNIBANCO\n33 | SANTANDER\n389 | MERCANTIL\n41 | BANRISUL\n422 | BANCO SAFRA\n70 | BRB\n748 | SICREDI\n104 | CAIXA ECONÔMICA FEDERAL\n756 | SICOOB/BANCOOB\n\nBancos digitais e os demais não listados não serão aceitos."}, {"nome": "Hub", "suspenso": false, "conteudo": "PÚBLICO ALVO | Trabalhadores CLT ; Não atende analfabeto. ; Atende estrangeiros se tiver RG ou CNH dentro das regras.\nTOKEN | Não possui.\nQUANTIDADE MÍNIMA DE FUNCIONÁRIOS NA EMPRESA E TEMPO DE CNPJ ATIVO | Quantidade de Funcionários: Mínimo 20. ; Tempo de CNPJ ativo: Mínimo de 2 anos.\nLIMITE DE CONTRATOS | Limitado a Margem Consignável.\nTAXA | 4,52%\nVÍNCULO EMPREGATÍCIO | No mínimo 12 meses na mesma empresa.\nIDADE | De 21 a 61 anos.\nMARGEM CONSIGNÁVEL | Até 35% da renda líquida\nPRAZO | De 12 a 36 meses.\nVALOR | De R$ 1 mil a R$ 20 mil\nPOSSUI OPÇÃO DE SEGURO | Sim.\nAUTORIZAÇÃO | É enviado o link via SMS para autorização da consulta do INSS e outro link para formalização (é possível copiar os links no sistema).\nDOCUMENTOS ACEITOS | RG com CPF (dentro da validade de 10 anos) ou CNH (dentro da validade).\nMEIO DE LIBERAÇÃO | Via TED ou PIX nas instituições da tabela a seguir.\n\n# BANCOS ACEITOS\nCÓDIGO | BANCO | CÓDIGO | BANCO | CÓDIGO | BANCO\n1 | BANCO DO BRASIL | 208 | BTG | 389 | MERCANTIL\n4 | BANCO DO NORDESTE DO BRASIL | 212 | ORIGINAL | 422 | SAFRA\n33 | SANTANDER | 237 | BRADESCO | 623 | PAN\n41 | BANRISUL | 260 | NUBANK | 655 | VOTORANTIM\n70 | BRB | 293 | PORTO SEGURO | 707 | DAYCOVAL\n77 | INTER | 318 | BMG | 735 | NEON\n102 | XP | 336 | C6 | 748 | SICREDI\n104 | CAIXA ECONÔMICA FEDERAL | 341 | ITAÚ | 756 | SICOOB\n121 | AGIBANK\n380 | PICPAY\n\nDemais bancos não listados não serão aceitos."}, {"nome": "iCred", "suspenso": false, "conteudo": "PÚBLICO ALVO | Trabalhadores CLT ; Não atende analfabeto. ; Atende estrangeiros se o cliente possuir documento de emissão Brasileira, telefone com prefixo Brasileiro e enquadrar dentro das regras.\nTOKEN | Não possui.\nQUANTIDADE MÍNIMA DE FUNCIONÁRIOS NA EMPRESA E TEMPO DE CNPJ ATIVO | Quantidade de Funcionários: Mínimo 50 funcionários ou faturamento anual de 3 milhões. ; Tempo de CNPJ ativo: Mínimo de 3 anos.\nLIMITE DE CONTRATOS | 9 por CPF\nTAXA | Variável limitada até 4,98% a.m.\nVÍNCULO EMPREGATÍCIO | No mínimo 12 meses na mesma empresa.\nIDADE | Homens: De 21 a 65 anos. ; Mulheres: De 21 a 60 anos.\nMARGEM CONSIGNÁVEL | Até 35% da renda líquida\nPRAZO | De 6 a 48 meses.\nVALOR | De R$ 500,00 a R$ 20 mil\nPOSSUI OPÇÃO DE SEGURO | Sim.\nAUTORIZAÇÃO | É enviado o link via SMS para autorização da consulta do INSS e outro link para formalização (é possível copiar os links no sistema).\nDOCUMENTOS ACEITOS | RG ou CNH (Documento físico em mãos para captura durante o fluxo de assinatura)\nMEIO DE LIBERAÇÃO | Via PIX na conta do titular\n\n# BANCOS CONVENCIONAIS ACEITOS\nBanco do Brasil | Ascoob | Caixa\nBanco da Amazônia | Itaú | Banco Alfa\nBradesco | Banpará | Santander\nBanestes | Banrisul | Unicred\nMercantil do Brasil | Cresol | Banese\nBRB - Banco de Brasília | Sicoob | CCLA\nSicredi | Uniprime\n# BANCOS DIGITAIS ACEITOS\nNext\nBanco BTG Pactual\nInter\nNubank\n\nDemais bancos não listados não serão aceitos."}, {"nome": "Mercantil", "suspenso": false, "conteudo": "PÚBLICO ALVO | Trabalhador apto para contratação de acordo com a normativa do governo. ; Empregado privado contratado pela CLT ; Não atende analfabeto. ; Atende estrangeiros somente com a CTPS como documento aceito.\nTOKEN | Não possui.\nQUANTIDADE MÍNIMA DE FUNCIONÁRIOS NA EMPRESA E TEMPO DE CNPJ ATIVO | Tempo de CNPJ ativo: 36 meses.\nLIMITE DE CONTRATOS | 1 contrato por CPF.\nTAXA | A taxa pode variar conforme Score do cliente. O percentual de variação é de 2,0% à 4,52%.\nVÍNCULO EMPREGATÍCIO | No mínimo 12 meses.\nIDADE | De 20 a 58 anos.\nMARGEM CONSIGNÁVEL | Necessário simular\nPRAZO | De 1 a 48 meses\nVALOR | Valor mínimo: R$ 200,00 (Parcela mínima de R$ 10,00). ; Valor máximo: R$ 50.000,00\nPOSSUI OPÇÃO DE SEGURO | Sim.\nAUTORIZAÇÃO | Após inserir o número de celular do cliente, ele receberá um SMS com um link para aceitar a consulta de dados do trabalhador na Dataprev e de Crédito no Banco Central.\nDOCUMENTOS ACEITOS | RG, CNH ou CTPS\nMEIO DE LIBERAÇÃO | Os dados bancários que o cliente deseja receber o crédito do empréstimo, desde que seja uma conta de sua titularidade, via TED.\n\n# BANCOS ACEITOS\nCÓDIGO | BANCO\nCÓDIGO | BANCO\n1 | BANCO DO BRASIL\n104 | CAIXA\n4 | BNB (BANCO DO NORDESTE DO BRASIL)\n121 | AGIBANK\n21 | BANESTES\n237 | BRADESCO\n33 | SANTANDER\n260 | NUBANK\n41 | BANRISUL\n318 | BMG\n47 | BANESE\n341 | ITAÚ\n69 | CREFISA\n623 | PAN\n70 | BRB\n748 | SICREDI\n77 | INTER\n756 | BANCOOB/SICOOB\n\nO Mercantil não possui lista dos não aceitos."}, {"nome": "Novo Saque", "suspenso": false, "conteudo": "PÚBLICO ALVO | Trabalhador apto para contratação de acordo com a normativa do governo. ; Empregado privado contratado pela CLT ; Não atende analfabetos. ; Estrangeiro somente se for naturalizado e tiver CPF.\nTOKEN | Não possui.\nQUANTIDADE MÍNIMA DE FUNCIONÁRIOS NA EMPRESA E TEMPO DE CNPJ ATIVO | CNPJ ativo por no mínimo 2 anos.\nLIMITE DE CONTRATOS | 9 contratos por CPF.\nTAXA | 4,98%\nVÍNCULO EMPREGATÍCIO | Mínimo de 6 meses\nIDADE | De 21 a 65 anos.\nMARGEM CONSIGNÁVEL | Até 80% da margem disponível\nPRAZO | De 18 a 48 meses\nVALOR | Mínimo: R$ 500,00 ; Máximo: R$ 30 mil\nPOSSUI OPÇÃO DE SEGURO | Seguro incluso em todas as operações.\nAUTORIZAÇÃO | Necessário copiar o link e enviar para o cliente\nDOCUMENTOS ACEITOS | CNH, RG, CTPS e Carteira de Conselho\nMEIO DE LIBERAÇÃO | Em conta disponibilizada pelo cliente no momento da formalização via PIX."}, {"nome": "Pan", "suspenso": false, "conteudo": "PÚBLICO ALVO | Empregado – Geral, inclusive empregado público da administração direta ou indireta contratado pela CLT. ; Empregado – Trabalhador rural por pequeno prazo da Lei 11.718/2008. ; Empregado – Doméstico. ; Não atende analfabeto. ; Atende estrangeiros.\nTOKEN | Não possui.\nQUANTIDADE MÍNIMA DE FUNCIONÁRIOS NA EMPRESA E TEMPO DE CNPJ ATIVO | 20 funcionários. Veja a seguir como consultar a elegibilidade do cliente. ; Dica: Use o BOT de WhatsApp para validar CNPJs: (11) 3264-5924\nLIMITE DE CONTRATOS | Até 9 contratos por vínculo\nTAXA | De 1,98% até 4,52%\nVÍNCULO EMPREGATÍCIO | No mínimo 4 meses na mesma empresa. Veja a seguir como consultar a elegibilidade do cliente.\nIDADE | Mulheres: De 18 a 57 anos, 11 meses e 29 dias. ; Homens: De 18 a 62 anos, 11 meses e 29 dias.\nMARGEM CONSIGNÁVEL | 35% da margem\nPRAZO | De 6 a 36 meses.\nVALOR | Mínimo: R$ 200,00 ; Máximo: R$ 40 mil\nPOSSUI OPÇÃO DE SEGURO | Sim.\nAUTORIZAÇÃO | Será solicitada via whatsapp durante a digitação.\nDOCUMENTOS ACEITOS | Conforme página seguinte\nMEIO DE LIBERAÇÃO | O crédito concedido deverá ser feito, na conta corrente que o trabalhador preferir (conta corrente, poupança ou ordem de pagamento).\n\n▪ RG\n▪ CNH – Física e Digital dentro da validade\n▪ Carteira de Classe (OAB,CREA,etc.), dentro da validade\n▪ Identidade Militar\n▪ Passaporte dentro da validade\n▪ Identidade expedida pela FUNAI\n▪ CRMN/RNE\n▪ Demais documentos de identidade permitidos por lei à critério da instituição\n▪ CTPS – Modelo computadorizado. Modelo manuscrito não será aceito.\n\nO PAN não possui listagem de bancos aceitos ou não aceitos mas atenção:\n• O crédito de empréstimo deve ser feito na conta corrente onde o aposentado ou pensionista\nrecebe seu benefício.\n• Se o benefício for recebido por cartão magnético, o crédito deve ser feito na conta corrente do\ntitular ou por Ordem de Pagamento (OP).\n• É necessário solicitar na agência a liberação do valor na conta.\n• Após a averbação, a conta informada para crédito não pode ser alterada.\n• Para mais detalhes sobre crédito para Representante Legal e tipos de recebimento do benefício,\nconsulte o Roteiro Operacional.\n\nConsulte a elegibilidade via WhatsApp\n1. Acesse o Bot\nClique no número abaixo para abrir a conversa:\n(11) 3264-5924\n2. Envie os dados na ordem solicitada\n• CPF do digitador: 11 dígitos (somente números)\n• Código do parceiro: 4 dígitos\n• CNPJ da empresa: apenas os 8 primeiros dígitos\n3. Aguarde a confirmação\nO Bot informará imediatamente se a empresa está apta para Consignado Privado."}, {"nome": "Paraná Banco", "suspenso": false, "conteudo": "PÚBLICO ALVO | PARANÁ BANCO ; Trabalhadores celetistas categoria 101 - Empregado Geral, com prazo de contrato indeterminado e que tenham registro de remuneração na última competência do eSocial. ; Atende estrangeiros. Não atende analfabetos.\nTOKEN | O Token é enviado via Whatsapp, evitar de solicitar reenvio para não correr o risco de travar a operação.\nQUANTIDADE MÍNIMA DE FUNCIONÁRIOS NA EMPRESA E TEMPO DE CNPJ ATIVO | O CNPJ precisa ser diferente da categoria MEI e com no mínimo 24 meses de existência e capital social mínimo de R$ 15 mil.\nLIMITE DE CONTRATOS | Até 9 contratos por CPF, respeitando o limite de 35% da margem consignável\nTAXA | 4,97%\nVÍNCULO EMPREGATÍCIO | No mínimo 6 meses na mesma empresa. Veja a seguir como consultar a elegibilidade do cliente.\nIDADE | Sem seguro: De 21 a 55 anos. ; Com seguro: De 21 a 60 anos.\nMARGEM CONSIGNÁVEL | A margem consignável é limitada a 35% do salário e o Paraná Banco utilizará 70% da margem.\nPRAZO | De 19 a 24 meses.\nVALOR | Mínimo liberado: R$ 1.000,00 – Parcela mínima: R$ 100,00 ; Máximo liberado: R$ 20 mil – Parcela máxima: R$ 2 mil\nPOSSUI OPÇÃO DE SEGURO | Sim.\nAUTORIZAÇÃO | Para consulta de viabilidade do contrato, será gerado um link de consentimento na digitação do cliente onde será enviado via SMS pra que os dados sejam validados na Dataprev. Após o envio do link, o cliente precisará acessar, preencher o CPF e autorizar a consulta dos seus dados junto a Dataprev.\nDOCUMENTOS ACEITOS | RG, CNH ou RNE original, não são aceitos documentos fora da validade.\nMEIO DE LIBERAÇÃO | Via PIX ou TED\n\nNão são elegíveis para o Crédito do Trabalhador na CTPS:\n▪ Trabalhadores pertencentes às seguintes categorias:\n▪ Intermitente;\n▪ Temporário;\n▪ Aprendiz; e\n▪ Servidores públicos estatutários.\n\nBancos aceitos para pagamento:\n• Crédito em conta corrente ou poupança de titularidade do próprio\ncliente, com exceção dos bancos digitais bloqueados.*\n• Se na conta bancária informada no momento da contratação digital\ntiver alguma chave PIX vinculada, o pagamento é realizado inclusive\nfora do horário de expediente e finais de semana. Caso não tenha\nchave PIX vinculado, o pagamento ocorre via TED normalmente.\n\nParticularidades na Digitação:\nObservações: A digitação dos contratos devem seguir diretamente pelo front 360 .\nCadastrando o cliente , será gerado um link de consentimento . Esse link é onde\npelo aceite do mesmo o banco irá puxar as validações de margem e dados na\nDataprev. O link de consentimento é enviado via SMS.\n• Na digitação O empregador aparecerá como CRED TRAB.\n• A proposta do Consignado Trabalhador começa com o número 4.\n• Os dados do cliente precisam ser iguais ao que está descrito após a atualização\ndo consentimento. A Dataprev verifica essas informações para realizar a\naverbação."}, {"nome": "Petra", "suspenso": false, "conteudo": "PÚBLICO ALVO | Trabalhadores celetistas categoria 101 - Empregado Geral, com prazo de contrato indeterminado e que tenham registro de remuneração na última competência do eSocial.\nTOKEN | Não possui.\nQUANTIDADE MÍNIMA DE FUNCIONÁRIOS NA EMPRESA E TEMPO DE CNPJ ATIVO | Tempo de CNPJ Ativo: O CNPJ precisa ser diferente da categoria MEI e com no mínimo 3 anos de atividade. ; Quantidade Mínima de Funcionários: 50 funcionários ou R$ 5 milhões de faturamento anual\nLIMITE DE CONTRATOS | 1 contrato na bancalizadora UY3 + 4 em outras instituições.\nTAXA | De 4,52%\nVÍNCULO EMPREGATÍCIO | No mínimo 12 meses na mesma empresa.\nIDADE | De 21 a 61 anos (Fim do contrato).\nMARGEM CONSIGNÁVEL | Até 70% da margem Dataprev (35% do salário líquido).\nPRAZO | De 12 a 36 meses.\nVALOR | Mínimo liberado: R$ 1 mil ; Máximo liberado: R$ 20 mil\nPOSSUI OPÇÃO DE SEGURO | Sim.\nAUTORIZAÇÃO | Para consulta de margem do contrato, será gerado um link via sistema pelo dados de CPF e Telefone de consentimento na digitação do cliente onde será enviado via SMS pra que os dados sejam validados na Dataprev. Após o envio do link, o cliente precisará acessar, preencher todos os dados e autorizar a consulta dos seus dados junto a Dataprev.\nDOCUMENTOS ACEITOS | RG e CNH.\nMEIO DE LIBERAÇÃO | O crédito deve ser feito na conta corrente que o empregado recebe o salário. Via PIX ou TED.\n\nTEMPO DE VÍNCULO EMPREGATÍCIO | PRAZO\nDe 12 a 23 meses | De 12 a 24 meses\nA partir de 24 meses | De 12 a 36 meses\n\nPÚBLICO NÃO ACEITO – CPF:\n• PEP (Pessoa Exposta Politicamente);\n• CPFs com Situação irregular na Receita Federal;\nCARGO (CBO) NÃO ACEITO:\n• Pedreiro, servente, serviço doméstico, limpeza, arrumadeira, porteiro, vigia, manutenção de edificações,\ncuidadores, apoio à saúde.\nPÚBLICO NÃO ACEITO – CNPJ:\n• Não será aceito CNPJ com pendência no FGTS\n• Não será aceito CNPJ em falência ou recuperação judicial\n\n# BANCOS NÃO ACEITOS\nBanco | Observação\n033 – Santander | Agência digital iniciada em 77\n104 – Caixa Tem | Agência 3880\n197 – Stone\n213 – Banco Arbi\n218 – Banco BS2\n237 – Next\n290 – PagSeguro\n323 – Mercado Pago\n340 – Banco Superdigital\n341 – Iti (Itaú) | Agência 500\n403 – Cora SCD\n461 – Asaas\n529 – Pinbank Brasil\n536 – Neon | Agência 655\n634 – Banco Triângulo"}, {"nome": "Prata Digital", "suspenso": false, "conteudo": "PÚBLICO ALVO | Trabalhadores CLT. ; Não atende analfabeto. ; Atende estrangeiros.\nTOKEN | O Token vai chegar por E-mail ou SMS, não tem como escolher por onde ele será enviado, o sistema escolhe aleatoriamente. (É imprescindível que o Telefone e o E-mail do cliente estejam corretos pois é por eles que chega o token que será incluído na formalização).\nQUANTIDADE MÍNIMA DE FUNCIONÁRIOS NA EMPRESA E TEMPO DE CNPJ ATIVO | Mínimo de 10 funcionários e 24 meses de CNPJ ativo.\nLIMITE DE CONTRATOS | 1 por CPF.\nTAXA | 4,52%\nVÍNCULO EMPREGATÍCIO | No mínimo 12 meses na mesma empresa.\nIDADE | De 21 a 65 anos.\nMARGEM CONSIGNÁVEL | Até 90% da margem disponível (Não precisa calcular, a análise de crédito já puxa o valor total aprovado na digitação)\nPRAZO | Até 36 meses.\nVALOR | Mínimo de Saque: R$ 1 mil ; Máximo de saque: R$ 7 mil\nPOSSUI OPÇÃO DE SEGURO | Não.\nAUTORIZAÇÃO | Não é necessário autorizar no GOV, mas atenção: o link de formalização não vai automaticamente para o cliente, parceiro tem que copiar o link e enviar para o cliente. Telefone e email do cliente devem estar corretos pois é por ele que chega o token que deve ser incluído na formalização que o cliente vai fazer. O Token vai chegar por email ou SMS, não tem como escolher por onde ele será enviado, o sistema escolhe aleatoriamente.\nDOCUMENTOS ACEITOS | RG , CNH, RNE e RNM\nMEIO DE LIBERAÇÃO | Via PIX.\n\nNão serão aceitos clientes que se encontrem nas seguintes situações:\n• PEP (Pessoa Exposta Politicamente).\n• Licença maternidade.\n• Clientes com aviso prévio ou com data fim de contrato registrada.\n• Estagiários e temporários.\n• Experiência de trabalho.\n\n# BANCOS ACEITOS\nCÓDIGO | BANCO | CÓDIGO | BANCO | CÓDIGO | BANCO\n1 | BANCO DO BRASIL | 104 | CAIXA ECONOMICA FEDERAL | 341 | BANCO ITAÚ\n3 | BANCO DA AMAZÔNIA | 114 | CECOOP | 348 | BANCO XP S.A\n4 | BANCO DO NORDESTE DO BRASIL | 133 | CRESOL | 379 | CECM COOPERFORTE\n21 | BANCO DO ESTADO ESP. SANTO S/A | 136 | CONF NAC COOP CENTRAIS UNICRED | 389 | BANCO MERCANTIL\n33 | BANCO SANTANDER S/A | 190 | SERVICOOP | 422 | BANCO SAFRA\n41 | BANCO DO ESTADO R.G. SUL S/A | 237 | BRADESCO | 477 | CITIBANK N.A\n47 | BANCO DO ESTADO DE SERGIPE S/A | 260 | NU PAGAMENTOS S.A (NUBANK) | 707 | BANCO DAYCOVAL\n70 | BRB - BANCO DE BRASILIA S/A | 269 | HSBC BANK BRASIL S.A | 748 | SICREDI\n77 | BANCO INTER | 281 | CCR COOPAVEL | 756 | BANCOOB / SICOOB\n85 | BANCO AILOS\n318 | BANCO BMG\n97 | CECEM\n336 | BANCO C6"}, {"nome": "PH Tech", "suspenso": false, "conteudo": "PÚBLICO ALVO | Trabalhadores celetistas categoria 101 - Empregado Geral, com prazo de contrato indeterminado e que tenham registro de remuneração na última competência do eSocial.\nTOKEN | Não possui.\nQUANTIDADE MÍNIMA DE FUNCIONÁRIOS NA EMPRESA E TEMPO DE CNPJ ATIVO | Tempo de CNPJ Ativo: O CNPJ precisa ser diferente da categoria MEI e com no mínimo 3 anos de atividade. ; Quantidade Mínima de Funcionários: 50 funcionários ou R$ 5 milhões de faturamento anual\nLIMITE DE CONTRATOS | 1 contrato na bancalizadora UY3 + 4 em outras instituições.\nTAXA | De 4,98%\nVÍNCULO EMPREGATÍCIO | No mínimo 12 meses na mesma empresa.\nIDADE | De 21 a 61 anos (Fim do contrato).\nMARGEM CONSIGNÁVEL | Até 80% da margem Dataprev.\nPRAZO | De 12 a 48 meses.\nVALOR | Mínimo liberado: R$ 1.000,00 ; Máximo liberado: R$ 20 mil\nPOSSUI OPÇÃO DE SEGURO | Sim.\nAUTORIZAÇÃO | Para consulta de margem do contrato, será gerado um link via sistema pelo dados de CPF e Telefone de consentimento na digitação do cliente onde será enviado via SMS pra que os dados sejam validados na Dataprev. Após o envio do link, o cliente precisará acessar, preencher todos os dados e autorizar a consulta dos seus dados junto a Dataprev.\nDOCUMENTOS ACEITOS | RG e CNH.\nMEIO DE LIBERAÇÃO | O crédito deve ser feito na conta corrente que o empregado recebe o salário. Via PIX ou TED.\n\nTEMPO DE VÍNCULO EMPREGATÍCIO | PRAZO\nDe 12 a 23 meses | De 12 a 24 meses\nA partir de 24 meses | De 12 a 48 meses\n\nPÚBLICO NÃO ACEITO – CPF:\n• PEP (Pessoa Exposta Politicamente);\n• CPFs com Situação irregular na Receita Federal;\nCARGO (CBO) NÃO ACEITO:\n• Pedreiro, servente, serviço doméstico, limpeza, arrumadeira, porteiro, vigia, manutenção de edificações,\ncuidadores, apoio à saúde.\nPÚBLICO NÃO ACEITO – CNPJ:\n• Não será aceito CNPJ com pendência no FGTS\n• Não será aceito CNPJ em falência ou recuperação judicial\n\n# BANCOS NÃO ACEITOS\nBanco | Observação\n033 – Santander | Agência digital iniciada em 77\n104 – Caixa Tem | Agência 3880\n197 – Stone\n213 – Banco Arbi\n218 – Banco BS2\n237 – Next\n290 – PagSeguro\n323 – Mercado Pago\n340 – Banco Superdigital\n341 – Iti (Itaú) | Agência 500\n403 – Cora SCD\n461 – Asaas\n529 – Pinbank Brasil\n536 – Neon | Agência 655\n634 – Banco Triângulo"}, {"nome": "Presença Bank", "suspenso": false, "conteudo": "PÚBLICO ALVO | Celetista contratado sem término previsto. ; Brasileiros com CPF regular, sem restrições na receita federal e que não seja PEP (pessoas expostas politicamente). ; Não atende analfabeto. ; Atende estrangeiros desde que possua RNE.\nTOKEN | O Token é enviado via SMS, evitar de solicitar reenvio para não correr o risco de travar a operação.\nQUANTIDADE MÍNIMA DE FUNCIONÁRIOS NA EMPRESA E TEMPO DE CNPJ ATIVO | A empresa deve obter o CNPJ ativo por no mínimo 2 anos e não pode ser de porte ME\nLIMITE DE CONTRATOS | 9 por CPF.\nTAXA | 4,52%.\nVÍNCULO EMPREGATÍCIO | No mínimo 12 meses na mesma empresa.\nIDADE | De 20 a 62 anos\nMARGEM CONSIGNÁVEL | 70% da margem disponível.\nPRAZO | De 18 / 24 / 36 e 40 meses.\nVALOR | De R$ 100,00 a R$ 20 mil\nPOSSUI OPÇÃO DE SEGURO | Sem seguro.\nAUTORIZAÇÃO | O cliente receberá um SMS contendo o termo e deverá aceitá-lo para que a consulta seja realizada.\nDOCUMENTOS ACEITOS | RG, CNH e RNE.\nMEIO DE LIBERAÇÃO | Via TED.\n\nPúblico não atendido:\n• Identificamos perfis que, devido a regulamentações ou características\nde risco, não se qualificam para nossos produtos de crédito.\nRecuperação Judicial, Falência e Dívidas Tributárias (Esferas: Federal,\nEstadual e Municipal).\n• Qualquer envolvimento com trabalho escravo, ações criminais ou\nfraudes inviabiliza a concessão de crédito.\n\nEmpresas Não Aceitas:\n• Todas as empresas que não possuem certificado de regularidade do FGTS.\n• Todas as empresas que estão cadastradas no CEIS - Cadastro de Empresa Inidôneas e Suspensas.\n• Todas as empresas que estão cadastradas no CNEP - Cadastro Nacional de Empresas Punidas.\n\n# BANCOS NÃO ACEITOS\nCódigo Bancário | Banco | Observação\n33 | Santander | Agência digital iniciada em 77\n77 | Banco Inter\n104 | Caixa Tem | Agência 3880\n197 | Stone\n218 | Banco BS2\n231 | Banco Arbi\n237 | Next | Agências 3728, 3737, 3738, 3750, 3929, 6176, 7160, 7320, 7526, 7615, 7802\n290 | PagSeguro\n323 | Mercado Pago\n336 | C6 Bank\n340 | Banco Superdigital\n341 | Iti (Itaú) | Agência 500\n380 | PicPay\n422 | Safra\n626 | Banco PAN\n637 | Sofisa\n655 | Neon | Agência 655\n655 | Votorantim\n\nBanco digital permitido apenas 260 – Nubank"}, {"nome": "Qualibanking", "suspenso": true, "conteudo": "PÚBLICO ALVO | SUSPENSO ; Celetista contratado sem término previsto. ; Brasileiros com CPF regular, sem restrições na receita federal e que não seja PEP (pessoas expostas politicamente). ; Não atende analfabeto. ; Não atende estrangeiros.\nTOKEN | O Token é enviado via SMS, evitar de solicitar reenvio para não correr o risco de travar a operação.\nQUANTIDADE MÍNIMA DE FUNCIONÁRIOS NA EMPRESA E TEMPO DE CNPJ ATIVO | Tempo de CNPJ: A empresa deve obter o CNPJ ativo por no mínimo 3 anos. ; Capital social mínimo: R$ 200 mil.\nLIMITE DE CONTRATOS | 3 por CPF. ; Até 50 contratos por CNPJ.\nTAXA | 6,99%.\nVÍNCULO EMPREGATÍCIO | No mínimo 6 meses na mesma empresa.\nIDADE | De 21 a 65 anos\nMARGEM CONSIGNÁVEL | 70% da margem disponível.\nPRAZO | De 12 a 36 meses.\nVALOR | De R$ 800,00 a R$ 37.500,00 (R$ 12.500,00 por operação)\nPOSSUI OPÇÃO DE SEGURO | Sem seguro.\nAUTORIZAÇÃO | O cliente receberá um SMS contendo o termo e deverá aceitá-lo para que a consulta seja realizada.\nDOCUMENTOS ACEITOS | RG, CIN, CNH, Passaporte.\nMEIO DE LIBERAÇÃO | Via PIX.\n\nVÍNCULO EMPREGATÍCIO | PRAZOS PERMITIDOS\nDe 6 a 11 meses | 12 meses\nDe 12 a 17 meses | 12 / 18 / 24 meses\nAcima de 18 meses | 12 / 18 / 24 / 36 meses\n\nRequisitos da Empresa Empregadora:\n• CNPJ ativo na Receita Federal\n• Constituição mínima da empresa de 3 anos\n• Capital social mínimo de R$ 200.000,00\n• CPF do colaborador vinculado a apenas um CNPJ\n• Não são aceitos empregadores pessoa física\n\nCNAEs NÃO ACEITOS\nCódigo | CNAE\n8011-1/01 | Atividades de Vigilância e Segurança Privada.\n8011-1/02 | Serviços de adestramento de cães de guarda.\n8012-9/00 | Atividades de transporte de valores, abrangendo o transporte de dinheiro, títulos e itens preciosos em veículos blindados ou especiais, com segurança armada.\n8020-0/01 | Atividades de monitoramento de sistemas de segurança eletrônico, incluindo alarmes de incêndio e roubo, rastreamento de veículos via satélite e monitoramento de pessoas/bens.\n8020-0/02 | Outras atividades de serviços de segurança.\n8030-7/00 | Atividades de Investigação Particular.\n8111-7/00 | Serviços combinados para apoio a edifícios, exceto condomínios prediais.\n8112-5/00 | Subclasse de Condomínios Prediais, abrangendo atividades de condomínios residenciais e comerciais, incluindo serviços prestados por seus empregados.\n8121-4/00 | Limpeza em Prédios e em Domicílios.\n8122-2/00 | Imunização e Controle de Pragas Urbanas.\n8129-0/00 | Atividades de limpeza não especificadas anteriormente.\n8130-3/00 | Atividades Paisagísticas, abrangendo o plantio, tratamento e manutenção de jardins; gramados, parques e áreas verdes, tanto residenciais quanto públicos ou privados.\n8291-1/00 | Atividades de cobranças e informações cadastrais.\n8292-0/00 | Envasamento e empacotamento sob contrato, englobando serviços de embalagem, etiquetagem e fracionamento de produtos (líquidos, sólidos, aerossóis) para terceiros, por processo manual ou automatizado.\n8299-7/01 | Medição de consumo de energia elétrica, gás e água, incluindo leitura de medidores (hidrômetros, relógios de luz/gás), serviços de ligação, corte e religação de consumo, realizados por terceiros.\n8299-7/02 | Emissão e administração de vales-alimentação, vales-transporte, vales-refeição e similares.\n8299-7/03 | Serviços de gravação de carimbos, exceto confecção.\n8299-7/04 | Subclasse de Leiloeiros Independentes, abrangendo serviços de leilão realizados por profissionais autônomos ou empresas especializadas.\n8299-7/05 | Serviços de levantamento de fundos sob contrato.\n8299-7/06 | Casas Lotéricas.\n8299-7/07 | Salas de acesso à internet.\n8299-7/99 | Outras atividades de serviços prestados principalmente às empresas não especificadas anteriormente.\n4731-8/00 | Comércio varejista de combustíveis para veículos automotores.\n9491-0/00 | Atividades de Organizações Religiosas ou Filosóficas."}, {"nome": "Soma", "suspenso": false, "conteudo": "AVERBADOR | UY3, CELLCOIN E 321BANK\nValor de operação | De R$ 1.000,00 a R$ 26.000,00. (Parcela mínima de R$ 75,00)\nTempo de vínculo empregatício | No mínimo 9 meses.\nPrazo do contrato | De 12 a 60 meses\nTaxa | 4,98%\nTempo de constituição da empresa | No mínimo 2 anos.\nMínimo de Funcionários | 20 funcionários.\nLimite de Contratos | UY3: Limitado a até 4 contratos ativos na Dataprev e 1 na UY3. ; Celcoin: Limite de até 9 contratos ativos na Dataprev. ; 321Bank: Limite de até 9 contratos ativos na Dataprev.\nIdade | 18 a 64 anos.\nMargem liberada | Até 90% da margem DATAPREV\nDocumentação aceita | RG e CNH (Física ou Digital) ; Para clientes estrangeiros, é obrigatório possuir CPF e CRNM/RNE válidos. Não valida data de expedição dos documentos.\nForma de liberação | Via PIX.\nAutorização | Link de assinatura via Biometria Facial (Enviado ao celular do cliente e disponibilizado em sistema - copiar)\n\nSOMA – REGRA GERAL\nSOMA NÃO ATENDE ANALFABETOS."}, {"nome": "V8 Digital", "suspenso": false, "conteudo": "PÚBLICO ALVO | Trabalhador CLT, domésticos, rurais. ; Atende estrangeiros. ; Não atende analfabetos.\nTOKEN | Não possui.\nQUANTIDADE MÍNIMA DE FUNCIONÁRIOS NA EMPRESA E TEMPO DE CNPJ ATIVO | Tempo de CNPJ Ativo: no mínimo 2 anos. ; Quantidade de Funcionários: Não possui restrição.\nLIMITE DE CONTRATOS | Limitado a 9 contratos por CPF.\nTAXA | Variáveis conforme o perfil. (Necessário simular).\nVÍNCULO EMPREGATÍCIO | No mínimo 12 meses na mesma empresa.\nIDADE | De 21 a 65 anos\nMARGEM CONSIGNÁVEL | 35% da renda líquida (100% liberada para empréstimo sujeito a análise de crédito interno).\nPRAZO | De 3 a 48 meses.\nVALOR | Mínimo: R$ 300,00 (Parcela mínima R$ 25,00) ; Máximo: R$ 50 mil\nPOSSUI OPÇÃO DE SEGURO | Sim, mas não é obrigatório.\nAUTORIZAÇÃO | Após gerar o termo de autorização, sua solicitação aparecerá na simulação com o status “aguardando consentimento” e com o link para aceite. Basta copiar o link no ícone e enviar ao cliente para que ele realize o aceite.\nDOCUMENTOS ACEITOS | RG, CNH, Passaporte, RNE, Carteira de Trabalho e Carteira Profissional (OAB, COREN, ...).\nMEIO DE LIBERAÇÃO | Via PIX em conta corrente individual de titularidade do cliente.\n\nPúblico não atendido:\n• PEP (Pessoas expostas politicamente)\n• CPF irregular na receita\n• Funcionários com contrato com data-fim.\n• Estagiários ou menores aprendizes.\n• Analfabetos"}, {"nome": "VCTex", "suspenso": false, "conteudo": "PÚBLICO ALVO | Celetista contratado sem término previsto. ; Brasileiros com CPF regular, sem restrições na receita federal e que não seja PEP (pessoas expostas politicamente). ; Não atende analfabeto. ; Atende estrangeiros.\nTOKEN | O Token é enviado via SMS, evitar de solicitar reenvio para não correr o risco de travar a operação.\nQUANTIDADE MÍNIMA DE FUNCIONÁRIOS NA EMPRESA E TEMPO DE CNPJ ATIVO | Tempo de CNPJ: A empresa deve obter o CNPJ ativo por no mínimo 2 anos. ; Mínimo de funcionários: 20 colaboradores\nLIMITE DE CONTRATOS | 3 por CPF.\nTAXA | 4,51%\nVÍNCULO EMPREGATÍCIO | No mínimo 12 meses na mesma empresa.\nIDADE | Homens: De 21 a 60 anos, 11 meses e 29 dias. ; Mulheres: De 21 a 54 anos, 11 meses e 29\nMARGEM CONSIGNÁVEL | 80% da margem disponível.\nPRAZO | De 24, 36 e 48 meses.\nVALOR | De R$ 500,00 a R$ 26.000,00 (Variável conforme prazo)\nPOSSUI OPÇÃO DE SEGURO | Sem seguro.\nAUTORIZAÇÃO | O cliente receberá um SMS contendo o termo e deverá aceitá-lo para que a consulta seja realizada.\nDOCUMENTOS ACEITOS | RG, CNH, RNE e RNM\nMEIO DE LIBERAÇÃO | Via PIX.\n\nPolítica de Simulação\nPrazo Proposta | Valor\n24 meses | R$ 15 mil\n36 meses | R$ 20 mil\n48 meses | R$ 26 mil\nTempo mínimo de casa: 12 meses.\n\nPúblico não atendido:\n• PEP (Pessoas expostas politicamente)\n• CPF irregular na receita\n• Funcionários com contrato com data-fim.\n• Analfabetos"}];
 
 /* ===================== ESTADO ===================== */
 const S={ user:null, perfil:null, pode:PERFIS.vendedor, lotes:[], loteAtual:null, leads:[],
-  usuarios:[], resets:[], pedidos:[], filtro:{busca:"",status:"",resp:"",marca:""}, ordem:"quente",
+  usuarios:[], resets:[], pedidos:[], roteiros:[], rotSel:null, unsubRoteiros:null, filtro:{busca:"",status:"",resp:"",marca:"",bancoProv:""}, ordem:"quente",
   pag:1, porPag:100, unsubLeads:null, unsubLotes:null, unsubUsrs:null, unsubResets:null,
   unsubPedidos:null, imp:null, tituloBase:document.title, piscando:null, avisoOk:false };
 
@@ -800,10 +874,10 @@ el("liReset").onclick=async()=>{
 el("btnSair").onclick=async()=>{ desligar(); await signOut(auth); };
 
 function desligar(){
-  ["unsubLeads","unsubLotes","unsubUsrs","unsubResets","unsubPedidos"].forEach(k=>{ if(S[k]){S[k]();S[k]=null;} });
+  ["unsubLeads","unsubLotes","unsubUsrs","unsubResets","unsubPedidos","unsubRoteiros"].forEach(k=>{ if(S[k]){S[k]();S[k]=null;} });
   if(S.relogio){ clearInterval(S.relogio); S.relogio=null; }
   piscarTitulo(0);
-  S.leads=[];S.lotes=[];S.usuarios=[];S.resets=[];S.pedidos=[];S.loteAtual=null;
+  S.leads=[];S.lotes=[];S.usuarios=[];S.resets=[];S.pedidos=[];S.roteiros=[];S.rotSel=null;S.loteAtual=null;
 }
 
 onAuthStateChanged(auth,async u=>{
@@ -849,6 +923,7 @@ onAuthStateChanged(auth,async u=>{
   show("telaCarregando",false);
   el("telaApp").classList.remove("hide"); el("telaApp").style.display="flex";
   ouvirLotes();
+  ouvirRoteiros();
   if(S.pode.importa){ ouvirPedidos(); show("btnAtivarAviso",!S.avisoOk&&"Notification" in window); }
   if(S.pode.usuarios){ ouvirUsuarios(); ouvirResets(); }
   if(S.relogio) clearInterval(S.relogio);
@@ -858,9 +933,10 @@ onAuthStateChanged(auth,async u=>{
 /* ===================== ABAS ===================== */
 function irParaAba(p){
   document.querySelectorAll(".aba").forEach(x=>x.classList.toggle("on",x.dataset.p===p));
-  ["leads","resumo","importar","usuarios"].forEach(n=>
+  ["leads","resumo","roteiros","importar","usuarios"].forEach(n=>
     el("p"+n[0].toUpperCase()+n.slice(1)).classList.toggle("on",n===p));
   if(p==="resumo") pintarResumo();
+  if(p==="roteiros") pintarRoteiros();
 }
 el("navAbas").onclick=e=>{ const b=e.target.closest(".aba"); if(b) irParaAba(b.dataset.p); };
 
@@ -887,6 +963,7 @@ function ouvirLeads(loteId){
   if(!loteId){ S.leads=[]; pintar(); return; }
   S.unsubLeads=onSnapshot(query(collection(db,"lotes",loteId,"leads"),orderBy("nome")),snap=>{
     S.leads=snap.docs.map(d=>({id:d.id,...d.data()}));
+    pintarOpcoesBancoProv();
     pintar();
     if(el("pResumo").classList.contains("on")) pintarResumo();
   },err=>toast("Erro ao carregar leads: "+msgErro(err)));
@@ -897,6 +974,7 @@ el("fBusca").oninput=e=>{S.filtro.busca=norm(e.target.value);S.pag=1;pintar();};
 el("fStatus").onchange=e=>{S.filtro.status=e.target.value;S.filtro.marca="";S.pag=1;pintar();};
 el("fResp").onchange=e=>{S.filtro.resp=e.target.value;S.pag=1;pintar();};
 el("fOrdem").onchange=e=>{S.ordem=e.target.value;S.pag=1;pintar();};
+el("fBancoProv").onchange=e=>{S.filtro.bancoProv=e.target.value;S.pag=1;pintar();};
 el("fPorPag").onchange=e=>{S.porPag=+e.target.value;S.pag=1;pintar();};
 
 function filtrados(){
@@ -908,6 +986,11 @@ function filtrados(){
     if(f.resp==="__meus"&&l.respUid!==S.user.uid) return false;
     if(f.resp==="__livres"&&l.respUid) return false;
     if(f.resp&&!f.resp.startsWith("__")&&l.respUid!==f.resp) return false;
+    if(f.bancoProv){
+      const a=Array.isArray(l.bancosProv)?l.bancosProv:null;
+      if(f.bancoProv==="__sem"){ if(!a||a.length) return false; }
+      else if(!a||!a.some(b=>bancoKey(b)===f.bancoProv)) return false;
+    }
     if(f.busca){
       const alvo=norm(l.nome)+" "+soDig(l.cpf)+" "+soDig(l.telefone)+" "+norm(l.matricula);
       if(!alvo.includes(f.busca)&&!alvo.includes(soDig(f.busca)||"\u0000")) return false;
@@ -1000,7 +1083,7 @@ function selos(l){
 function linha(l){
   const st=l.status||"NOVO", a=autorizadoEm(l), id=idade(l.nascimento), ph=paradoHa(l);
   return `<tr class="${QUENTES.has(l.id)?"quente":""} ${ph!==null?"parado":""}">
-    <td><div class="nome-cel">${esc(l.nome)} ${selos(l)}</div><div class="cpf mono">${fmtCPF(l.cpf)}</div></td>
+    <td><div class="nome-cel">${esc(l.nome)} ${selos(l)}</div><div class="cpf mono">${fmtCPF(l.cpf)}</div>${chipsBancos(l,3)}</td>
     <td class="mono">${soData(l.nascimento)}${id!==null?`<div style="color:var(--text-3);font-size:11.5px">${id} anos</div>`:""}</td>
     <td class="mono tel-cel">${fmtTel(l.telefone)}${l.whatsapp?' <span style="color:#15803d" title="Possui WhatsApp">●</span>':""}</td>
     <td class="mono nowrap" style="font-size:12px">${a?soHora(a):"—"}</td>
@@ -1031,6 +1114,7 @@ function cartao(l){
       ${a?`<span class="mono">🕒 ${soHora(a)}</span>`:""}
       ${l.banco?`<span>🏦 ${esc(l.banco)}</span>`:""}
     </div>
+    ${chipsBancos(l,0)?`<div style="margin:-2px 0 10px">${chipsBancos(l,0)}</div>`:""}
     ${l.respNome?`<div class="resp" style="margin-bottom:9px">Responsável: <b>${esc(l.respNome)}</b> · ${dataHora(l.atualizadoEm)}</div>`:""}
     ${l.obs?`<div class="obs-prev" style="max-width:none;white-space:normal;margin-bottom:9px">📝 ${esc(l.obs)}</div>`:""}
     <div class="card-acoes">${selStatus(l)}${botoesContato(l)}
@@ -1045,6 +1129,8 @@ document.addEventListener("change",e=>{
   pedirStatus(s.dataset.st,s.value);
 });
 document.addEventListener("click",e=>{
+  const rb=e.target.closest("[data-roteiro]");
+  if(rb){ abrirRoteiroModal(rb.getAttribute("data-roteiro")); return; }
   const c=e.target.closest("[data-copiatel]");
   if(c){ copiar(c.getAttribute("data-copiatel"),"Telefone copiado."); return; }
   const v=e.target.closest("[data-ver]"); if(v){ abrirFicha(v.dataset.ver); return; }
@@ -1065,7 +1151,7 @@ function pedirStatus(id,novo){
     `<p style="margin:0 0 16px;color:var(--text-2)">Cliente <b>${esc(l.nome)}</b> → <span class="tag t-${novo}">${cfg.rot}</span></p>`+
     (cfg.exigeBanco?`<div class="campo"><label>Qual banco? <span class="obrig">*</span></label>
        <input id="mdBanco" type="text" list="listaBancos" value="${esc(l.banco||"")}" placeholder="digite o nome do banco">
-       <datalist id="listaBancos">${bancosUsados().map(b=>`<option value="${esc(b)}">`).join("")}</datalist>
+       <datalist id="listaBancos">${bancosUsados(l).map(b=>`<option value="${esc(b)}">`).join("")}</datalist>
        <div class="dica">Campo obrigatório. Se já usou antes, aparece na sugestão.</div></div>`:"")+
     (cfg.exigeMotivo?`<div class="campo"><label>Motivo da reprovação <span class="obrig">*</span></label>
        <textarea id="mdObs" rows="3" placeholder="ex: margem insuficiente">${esc(l.obs||"")}</textarea>
@@ -1095,9 +1181,16 @@ function pedirStatus(id,novo){
     fechar();
   };
 }
-function bancosUsados(){
-  const s=new Set(); S.leads.forEach(l=>{ if(l.banco) s.add(l.banco); });
-  return [...s].sort((a,b)=>a.localeCompare(b,"pt-BR"));
+/* sugestões de banco: primeiro os prováveis do cliente, depois os roteiros e os já usados */
+function bancosUsados(lead){
+  const vistos=new Set(), saida=[];
+  const add=b=>{ const k=bancoKey(b); if(!k||vistos.has(k)) return; vistos.add(k); saida.push(b); };
+  (lead&&Array.isArray(lead.bancosProv)?lead.bancosProv:[]).forEach(add);
+  const resto=[];
+  S.roteiros.forEach(r=>resto.push(r.nome));
+  S.leads.forEach(l=>{ if(l.banco) resto.push(l.banco); });
+  resto.sort((a,b)=>a.localeCompare(b,"pt-BR")).forEach(add);
+  return saida;
 }
 async function gravarStatus(l,novo,extra={},opt={}){
   const antes=l.status||"NOVO";
@@ -1141,6 +1234,7 @@ function abrirFicha(id){
         <dt>Prazo</dt><dd class="mono">${l.prazo?l.prazo+"x":"—"}</dd>
         <dt>Parcela</dt><dd class="mono">${l.parcela?fmtMoeda(l.parcela):"—"}</dd>
         <dt>Valor liberado</dt><dd class="mono dinheiro">${l.valorLiberado?fmtMoeda(l.valorLiberado):"—"}</dd>
+        <dt>Prováveis bancos</dt><dd>${Array.isArray(l.bancosProv)?(l.bancosProv.length?chipsBancos(l,0).replace('margin-top:5px',''):'<span style="color:var(--text-3)">nenhum banco compatível na planilha</span>'):'<span style="color:var(--text-3)">não informado na planilha</span>'}</dd>
         <dt>Banco</dt><dd>${esc(l.banco||"—")}</dd>
         <dt>Responsável</dt><dd>${esc(l.respNome||"ninguém ainda")}</dd>
         <dt>Atualizado</dt><dd>${dataHora(l.atualizadoEm)}</dd>
@@ -1148,7 +1242,7 @@ function abrirFicha(id){
       ${S.pode.altera?`
       <div class="campo"><label>Banco</label>
         <input id="fiBanco" type="text" list="listaBancos2" value="${esc(l.banco||"")}">
-        <datalist id="listaBancos2">${bancosUsados().map(b=>`<option value="${esc(b)}">`).join("")}</datalist></div>
+        <datalist id="listaBancos2">${bancosUsados(l).map(b=>`<option value="${esc(b)}">`).join("")}</datalist></div>
       <div class="campo"><label>Observação</label>
         <textarea id="fiObs" rows="3" placeholder="ex: pediu para ligar depois das 18h">${esc(l.obs||"")}</textarea></div>
       <div id="fiErro" class="aviso aviso-erro hide"></div>`:""}
@@ -1347,12 +1441,13 @@ el("btnExportar").onclick=()=>{
     "MATRÍCULA":l.matricula||"", "PRAZO":l.prazo||"", "PARCELA":Number(l.parcela)||0,
     "VALOR LIBERADO":Number(l.valorLiberado)||0, "TELEFONE":soDig(l.telefone),
     "POSSUI WHATSAPP":l.whatsapp?"SIM":"NÃO",
+    "PROVÁVEIS BANCOS COMPATÍVEIS":(l.bancosProv||[]).join(", "),
     "AUTORIZADO EM":soHora(autorizadoEm(l)), "VÁLIDO ATÉ":soHora(l.validoAte),
     "SITUAÇÃO":STATUS[l.status||"NOVO"].rot, "BANCO":l.banco||"",
     "RESPONSÁVEL":l.respNome||"", "OBSERVAÇÃO":l.obs||"", "ATUALIZADO EM":dataHora(l.atualizadoEm)
   }));
   const ws=XLSX.utils.json_to_sheet(linhas);
-  ws["!cols"]=[{wch:36},{wch:14},{wch:13},{wch:7},{wch:24},{wch:7},{wch:12},{wch:14},{wch:14},{wch:9},{wch:16},{wch:16},{wch:20},{wch:16},{wch:22},{wch:34},{wch:16}];
+  ws["!cols"]=[{wch:36},{wch:14},{wch:13},{wch:7},{wch:24},{wch:7},{wch:12},{wch:14},{wch:14},{wch:9},{wch:44},{wch:16},{wch:16},{wch:20},{wch:16},{wch:22},{wch:34},{wch:16}];
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Leads");
   const lote=S.lotes.find(l=>l.id===S.loteAtual);
   XLSX.writeFile(wb,`leads_${(lote?.id||hoje())}_situacao.xlsx`);
@@ -1483,13 +1578,14 @@ function montaLead(r){
     parcela:numBR(g("parcela")),
     valorLiberado:numBR(g("valorLiberado")),
     validoAte:paraISO(g("validoAte")),
-    whatsapp:m.whatsapp>=0?["sim","s","true","1","yes","y"].includes(zap):null
+    whatsapp:m.whatsapp>=0?["sim","s","true","1","yes","y"].includes(zap):null,
+    bancosProv:m.bancosProv>=0?g("bancosProv").split(/[,;]+/).map(x=>x.trim()).filter(Boolean):null
   };
 }
 function previa(){
   const l5=S.imp.linhas.slice(0,5).map(montaLead);
   el("prevTbl").innerHTML=`<table><thead><tr>
-    <th>Nome</th><th>CPF</th><th>Nasc.</th><th>Telefone</th><th>Prazo</th><th>Parcela</th><th>Valor</th><th>Autorizado</th><th>Zap</th></tr></thead><tbody>
+    <th>Nome</th><th>CPF</th><th>Nasc.</th><th>Telefone</th><th>Prazo</th><th>Parcela</th><th>Valor</th><th>Autorizado</th><th>Zap</th><th>Prováveis bancos</th></tr></thead><tbody>
     ${l5.map(l=>{const a=autorizadoEm(l);return `<tr>
       <td>${esc(l.nome)||'<span class="obrig">vazio</span>'}</td>
       <td class="mono">${l.cpf?fmtCPF(l.cpf):'<span class="obrig">vazio</span>'}</td>
@@ -1499,7 +1595,8 @@ function previa(){
       <td class="mono">${l.parcela?fmtMoeda(l.parcela):"—"}</td>
       <td class="mono">${l.valorLiberado?fmtMoeda(l.valorLiberado):"—"}</td>
       <td class="mono">${a?soHora(a):"—"}</td>
-      <td>${l.whatsapp===null?"—":(l.whatsapp?"SIM":"NÃO")}</td></tr>`}).join("")}
+      <td>${l.whatsapp===null?"—":(l.whatsapp?"SIM":"NÃO")}</td>
+      <td style="min-width:200px">${l.bancosProv===null?"—":(l.bancosProv.length?esc(l.bancosProv.join(", ")):'<span style="color:var(--text-3)">nenhum</span>')}</td></tr>`}).join("")}
     </tbody></table>`;
 }
 el("btnImportar").onclick=async()=>{
@@ -1526,6 +1623,7 @@ el("btnImportar").onclick=async()=>{
     for(let i=0;i<leads.length;i++){
       const l=leads[i], ja=atuais.get(l.id), dados={...l};
       delete dados.id;
+      if(dados.bancosProv===null) delete dados.bancosProv;
       if(ja){ mantidos++; lote.set(doc(db,"lotes",loteId,"leads",l.id),dados,{merge:true}); }
       else{ novos++; lote.set(doc(db,"lotes",loteId,"leads",l.id),{
         ...dados,status:"NOVO",obs:"",banco:"",respUid:null,respNome:null,
@@ -1548,6 +1646,197 @@ el("btnImportar").onclick=async()=>{
         <dt>Total no lote</dt><dd><b>${fmtNum(totalFinal)}</b></dd></dl>`,
       pe:`<button class="btn btn-primary" onclick="document.getElementById('modalHost').innerHTML=''">Fechar</button>`});
   }catch(err){ toast("Erro na importação: "+msgErro(err)); el("btnImportar").disabled=false; }
+};
+
+/* ===================== BANCOS PROVÁVEIS ===================== */
+/* "Petra (UY3)" e "PETRA" viram a mesma chave */
+function bancoKey(n){
+  return norm(n).replace(/\(.*?\)/g," ").replace(/[^a-z0-9+ ]/g," ").replace(/\s+/g," ").trim();
+}
+function achaRoteiro(nome){
+  const k=bancoKey(nome); if(!k) return null;
+  return S.roteiros.find(r=>bancoKey(r.nome)===k)
+      || S.roteiros.find(r=>{ const rk=bancoKey(r.nome); return rk.startsWith(k+" ")||k.startsWith(rk+" "); })
+      || null;
+}
+function chipsBancos(l,max){
+  const a=l.bancosProv;
+  if(!Array.isArray(a)) return "";
+  if(!a.length) return `<div class="bsem">sem banco compatível</div>`;
+  const vis=max?a.slice(0,max):a, resto=a.length-vis.length;
+  return `<div class="bchips">`+
+    vis.map(b=>`<span class="bchip" data-roteiro="${esc(b)}" title="Ver o roteiro de ${esc(b)}">${esc(b)}</span>`).join("")+
+    (resto>0?`<span class="bchip mais" data-ver="${l.id}" title="Ver todos os bancos">+${resto}</span>`:"")+
+  `</div>`;
+}
+function pintarOpcoesBancoProv(){
+  const sel=el("fBancoProv"), cont=new Map(); let sem=0;
+  S.leads.forEach(l=>{
+    const a=l.bancosProv; if(!Array.isArray(a)) return;
+    if(!a.length){ sem++; return; }
+    const vistos=new Set();
+    a.forEach(b=>{ const k=bancoKey(b); if(!k||vistos.has(k)) return; vistos.add(k);
+      const x=cont.get(k)||{nome:b,n:0}; x.n++; cont.set(k,x); });
+  });
+  const ant=S.filtro.bancoProv;
+  const ops=[...cont.entries()].sort((a,b)=>a[1].nome.localeCompare(b[1].nome,"pt-BR"));
+  sel.innerHTML=`<option value="">Bancos prováveis: todos</option>`+
+    ops.map(([k,x])=>`<option value="${esc(k)}">${esc(x.nome)} (${fmtNum(x.n)})</option>`).join("")+
+    (sem?`<option value="__sem">Sem banco compatível (${fmtNum(sem)})</option>`:"");
+  sel.classList.toggle("hide",!cont.size&&!sem);
+  sel.value=[...sel.options].some(o=>o.value===ant)?ant:"";
+  S.filtro.bancoProv=sel.value;
+}
+
+/* ===================== ROTEIROS ===================== */
+const slug=s=>norm(s).replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
+function ouvirRoteiros(){
+  S.unsubRoteiros=onSnapshot(collection(db,"roteiros"),snap=>{
+    S.roteiros=snap.docs.map(d=>({id:d.id,...d.data()}))
+      .sort((a,b)=>norm(a.nome).localeCompare(norm(b.nome),"pt-BR"));
+    if(el("pRoteiros").classList.contains("on")) pintarRoteiros();
+  },err=>{ S.roteiros=[]; if(el("pRoteiros").classList.contains("on")) toast("Não consegui carregar os roteiros: "+msgErro(err)); });
+}
+/* texto do roteiro -> HTML. "Campo | valor" vira tabela, "# Título" vira subtítulo,
+   "•" vira lista e " ; " separa itens dentro de uma célula */
+function rotHtml(txt){
+  const out=[]; let tab=[], ul=[];
+  const fechaTab=()=>{ if(tab.length){ out.push(`<div class="rt-wrap"><table class="rt"><tbody>${tab.join("")}</tbody></table></div>`); tab=[]; } };
+  const fechaUl=()=>{ if(ul.length){ out.push(`<ul class="rot-ul">${ul.join("")}</ul>`); ul=[]; } };
+  const cel=s=>{ const p=s.split(/\s;\s/).map(x=>x.trim()).filter(Boolean);
+    return p.length>1?`<ul>${p.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:esc(s); };
+  for(const raw of (txt||"").split("\n")){
+    const l=raw.trim();
+    if(!l){ fechaTab(); fechaUl(); continue; }
+    if(l.startsWith("# ")){ fechaTab(); fechaUl(); out.push(`<h4 class="rot-h">${esc(l.slice(2))}</h4>`); continue; }
+    if(l.includes(" | ")){
+      fechaUl();
+      const c=l.split(" | ").map(x=>x.trim());
+      tab.push(`<tr class="${c.length===2?"r2":"rn"}">${c.map(x=>`<td>${cel(x)}</td>`).join("")}</tr>`);
+      continue;
+    }
+    const m=l.match(/^([•●]\s*|[-–]\s+)(.*)$/);
+    if(m){ fechaTab(); ul.push(`<li>${esc(m[2])}</li>`); continue; }
+    fechaTab(); fechaUl(); out.push(`<p class="rot-p">${esc(l)}</p>`);
+  }
+  fechaTab(); fechaUl();
+  return out.join("")||`<p class="rot-p" style="color:var(--text-3)">Sem conteúdo.</p>`;
+}
+function pintarRoteiros(){
+  const bar=el("rotLista"), cont=el("rotCorpo"), admin=S.pode.usuarios;
+  const q=norm(el("rotBusca").value);
+  if(!S.roteiros.length){
+    bar.innerHTML="";
+    cont.innerHTML=`<div class="vazio"><div class="big">📘</div>Nenhum roteiro cadastrado ainda.`+
+      (admin?`<br><br><button class="btn btn-primary" id="btnSeedRot">Carregar os ${ROTEIROS_PADRAO.length} roteiros do PDF (${esc(ROTEIROS_FONTE)})</button>`
+            :`<br>Peça para o administrador cadastrar.`)+`</div>`;
+    return;
+  }
+  const vis=q?S.roteiros.filter(r=>norm(r.nome+" "+(r.conteudo||"")).includes(q)):S.roteiros;
+  if(!vis.length){ bar.innerHTML=""; cont.innerHTML=`<div class="vazio">Nenhum banco ou regra com “${esc(el("rotBusca").value)}”.</div>`; return; }
+  if(!S.rotSel||!vis.some(r=>r.id===S.rotSel)) S.rotSel=vis[0].id;
+  bar.innerHTML=vis.map(r=>`<button class="rot-btn ${r.id===S.rotSel?"on":""} ${r.suspenso?"susp":""}" data-rot="${esc(r.id)}">${esc(r.nome)}${r.suspenso?" · suspenso":""}</button>`).join("");
+  const r=S.roteiros.find(x=>x.id===S.rotSel);
+  const quando=r.atualizadoEm?dataHora(r.atualizadoEm):"";
+  cont.innerHTML=`<div class="rot-cab"><h2>${esc(r.nome)}</h2>${r.suspenso?'<span class="rot-susp">Suspenso</span>':""}
+      <div style="flex:1"></div>
+      ${admin?`<button class="btn btn-sm" data-editrot="${esc(r.id)}">✏️ Editar roteiro</button>
+               <button class="btn btn-sm btn-danger" data-delrot="${esc(r.id)}">Excluir</button>`:""}</div>
+    <div class="rot-meta">${r.fonte?esc(r.fonte)+" · ":""}${quando?"atualizado em "+quando:""}${r.atualizadoPor?" por "+esc(r.atualizadoPor):""}</div>
+    ${rotHtml(r.conteudo)}`;
+}
+el("rotBusca").oninput=pintarRoteiros;
+el("rotLista").onclick=e=>{ const b=e.target.closest("[data-rot]"); if(!b) return;
+  S.rotSel=b.getAttribute("data-rot"); pintarRoteiros(); };
+el("rotCorpo").onclick=async e=>{
+  if(e.target.closest("#btnSeedRot")){ semearRoteiros(); return; }
+  const ed=e.target.closest("[data-editrot]"); if(ed){ editarRoteiro(ed.getAttribute("data-editrot")); return; }
+  const dl=e.target.closest("[data-delrot]"); if(dl){ excluirRoteiro(dl.getAttribute("data-delrot")); }
+};
+el("btnNovoRot").onclick=()=>editarRoteiro(null);
+
+async function semearRoteiros(){
+  const b=el("btnSeedRot"); if(b){ b.disabled=true; b.textContent="Carregando…"; }
+  try{
+    const lote=writeBatch(db);
+    ROTEIROS_PADRAO.forEach(r=>lote.set(doc(db,"roteiros",slug(r.nome)),{
+      nome:r.nome, suspenso:!!r.suspenso, conteudo:r.conteudo, fonte:ROTEIROS_FONTE,
+      atualizadoEm:serverTimestamp(), atualizadoPor:S.perfil.nome||S.user.email }));
+    await lote.commit();
+    toast(`${ROTEIROS_PADRAO.length} roteiros carregados.`);
+  }catch(err){ toast("Não consegui carregar: "+msgErro(err)); if(b){ b.disabled=false; b.textContent="Tentar de novo"; } }
+}
+function editarRoteiro(id){
+  if(!S.pode.usuarios) return;
+  const r=id?S.roteiros.find(x=>x.id===id):null;
+  const original=r?ROTEIROS_PADRAO.find(p=>slug(p.nome)===r.id):null;
+  const fechar=modal({titulo:r?"Editar roteiro · "+esc(r.nome):"Novo banco", largura:"860px",
+    corpo:`<div class="map-grid">
+        <div class="campo"><label>Nome do banco <span class="obrig">*</span></label>
+          <input id="rtNome" type="text" value="${esc(r?.nome||"")}" ${r?"":'placeholder="ex: Banco Exemplo"'}></div>
+        <div class="campo"><label>Situação</label>
+          <select id="rtSusp"><option value="0" ${r?.suspenso?"":"selected"}>Ativo</option><option value="1" ${r?.suspenso?"selected":""}>Suspenso</option></select></div>
+      </div>
+      <div class="campo"><label>Conteúdo do roteiro</label>
+        <textarea id="rtTxt" class="rot-edit" spellcheck="false">${esc(r?.conteudo||"")}</textarea>
+        <div class="dica">Uma informação por linha, no formato <b>Campo | valor</b>. Linha em branco separa os blocos, <b>#</b> no começo vira subtítulo,
+          <b>•</b> no começo vira lista e <b> ; </b> separa itens dentro do valor. Quem consulta vê isso já formatado.</div></div>
+      <div id="rtErro" class="aviso aviso-erro hide"></div>`,
+    pe:`${original?`<button class="btn" id="rtOrig" style="margin-right:auto">Restaurar texto do PDF</button>`:""}
+        <button class="btn" id="rtNao">Cancelar</button><button class="btn btn-primary" id="rtSim">Salvar roteiro</button>`});
+  el("rtNao").onclick=fechar;
+  if(original) el("rtOrig").onclick=()=>{ el("rtTxt").value=original.conteudo; el("rtSusp").value=original.suspenso?"1":"0"; toast("Texto original no editor. Clique em Salvar para aplicar."); };
+  el("rtSim").onclick=async()=>{
+    const nome=(el("rtNome").value||"").trim(), conteudo=(el("rtTxt").value||"").trim();
+    const falhar=m=>{ el("rtErro").textContent=m; show("rtErro",true); };
+    if(!nome) return falhar("Informe o nome do banco.");
+    if(!conteudo) return falhar("O roteiro está vazio.");
+    const novoId=r?r.id:(slug(nome)||("banco-"+Date.now()));
+    if(!r&&S.roteiros.some(x=>x.id===novoId)) return falhar("Já existe um roteiro com esse nome. Edite o que já existe.");
+    el("rtSim").disabled=true;
+    try{
+      await setDoc(doc(db,"roteiros",novoId),{
+        nome, suspenso:el("rtSusp").value==="1", conteudo,
+        ...(r?{}:{fonte:"Cadastrado no painel"}),
+        atualizadoEm:serverTimestamp(), atualizadoPor:S.perfil.nome||S.user.email },{merge:true});
+      S.rotSel=novoId; fechar(); toast("Roteiro salvo. A equipe já vê a versão nova.");
+    }catch(err){ falhar("Não consegui salvar: "+msgErro(err)); el("rtSim").disabled=false; }
+  };
+}
+function excluirRoteiro(id){
+  const r=S.roteiros.find(x=>x.id===id); if(!r||!S.pode.usuarios) return;
+  const fechar=modal({titulo:"Excluir roteiro",
+    corpo:`<p>Excluir o roteiro de <b>${esc(r.nome)}</b> para toda a equipe?</p>
+      <div class="aviso aviso-erro" style="margin:12px 0 0">Não dá para desfazer. Se quiser só tirar de circulação, marque como Suspenso.</div>`,
+    pe:`<button class="btn" id="exNao">Cancelar</button><button class="btn btn-danger" id="exSim">Excluir</button>`});
+  el("exNao").onclick=fechar;
+  el("exSim").onclick=async()=>{
+    el("exSim").disabled=true;
+    try{ await deleteDoc(doc(db,"roteiros",id)); S.rotSel=null; fechar(); toast("Roteiro excluído."); }
+    catch(err){ toast(msgErro(err)); el("exSim").disabled=false; }
+  };
+}
+function abrirRoteiroModal(nome){
+  const r=achaRoteiro(nome);
+  if(!r){ toast(`Ainda não há roteiro cadastrado para ${nome}.`); return; }
+  const fechar=modal({titulo:esc(r.nome)+(r.suspenso?' <span class="rot-susp" style="vertical-align:middle;margin-left:6px">Suspenso</span>':""),
+    largura:"860px",
+    corpo:`<div class="rot-meta">${r.fonte?esc(r.fonte):""}${r.atualizadoEm?" · atualizado em "+dataHora(r.atualizadoEm):""}</div>${rotHtml(r.conteudo)}`,
+    pe:`<button class="btn" id="rmAba" style="margin-right:auto">Abrir na aba Roteiros</button><button class="btn btn-primary" id="rmFechar">Fechar</button>`});
+  el("rmFechar").onclick=fechar;
+  el("rmAba").onclick=()=>{ fechar(); S.rotSel=r.id; el("rotBusca").value=""; irParaAba("roteiros"); };
+}
+
+/* ===================== LAYOUT / MODELO DE IMPORTAÇÃO ===================== */
+el("layoutImp").innerHTML=
+  `Colunas, nessa ordem: ${LAYOUT_IMPORT.map(c=>`<b>${esc(c)}</b>`).join(" · ")}.<br>`+
+  `Obrigatórias: <b>NOME</b>, <b>CPF</b> e <b>TELEFONE HOT</b>. Em <b>PROVÁVEIS BANCOS COMPATÍVEIS</b> os bancos vão separados por vírgula `+
+  `(ex: Petra (UY3), Facta, Soma). Se a planilha vier nesse layout, as colunas já entram encaixadas na confirmação.`;
+el("btnModelo").onclick=()=>{
+  const ws=XLSX.utils.aoa_to_sheet([LAYOUT_IMPORT]);
+  ws["!cols"]=LAYOUT_IMPORT.map(c=>({wch:Math.max(14,c.length+2)}));
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Leads");
+  XLSX.writeFile(wb,"modelo_importacao_leads.xlsx");
 };
 
 /* ===================== PEDIDOS DE LEADS ===================== */

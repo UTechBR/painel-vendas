@@ -249,6 +249,12 @@
   .carregando{flex:1;display:grid;place-items:center;min-height:50vh;color:var(--text-2);gap:12px}
   .spin{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--brand-2);
     border-radius:50%;animation:gira .7s linear infinite}
+  .loader-mdv{position:relative;width:124px;height:124px;margin:0 auto;display:grid;place-items:center}
+  .loader-mdv::before{content:"";position:absolute;inset:0;border-radius:50%;border:3px solid rgba(240,124,31,.16);
+    border-top-color:var(--brand-2);border-right-color:var(--brand-2);animation:gira .9s linear infinite}
+  .spin-logo{height:30px;width:auto;display:block;animation:pulsaLogo 1.8s ease-in-out infinite}
+  @keyframes pulsaLogo{0%,100%{transform:scale(.94);opacity:.85}50%{transform:scale(1.04);opacity:1}}
+  @media (prefers-reduced-motion:reduce){.spin-logo,.loader-mdv::before{animation:none}}
   @keyframes gira{to{transform:rotate(360deg)}}
 
   /* ---------- Bancos prováveis e roteiros ---------- */
@@ -353,7 +359,8 @@ window.HORAS_VALIDADE = 24;
   </div>
 </div>
 
-<div id="telaCarregando" class="carregando"><div class="spin"></div><div>Carregando…</div></div>
+<div id="telaCarregando" class="carregando"><div style="text-align:center"><div class="loader-mdv"><img class="spin-logo" id="logoCarga" alt="MDV"></div><div style="margin-top:14px">Carregando…</div></div></div>
+<script>try{document.getElementById("logoCarga").src=window.LOGO_MDV}catch(e){}</script>
 
 <!-- LOGIN -->
 <div id="telaLogin" class="hide">
@@ -689,8 +696,9 @@ const PERFIS={
   vendgestor: {rot:"Vendedor(a) gestor(a)", importa:false, altera:true, usuarios:false, exporta:true, exportaVendas:true, pede:true, transfere:true},
   gestor:     {rot:"Gestor(a)",     importa:false, altera:false, usuarios:false, exporta:true,  exportaVendas:true,  pede:false}
 };
-/* quantas horas depois da criação o lead sem contato passa a "esfriando" */
-const HORAS_PARADO=1;
+/* o lead é "quente" nos primeiros minutos depois da autorização do cliente;
+   passou disso sem contato, ele está esfriando */
+const MIN_QUENTE=30;
 /* simulação sem retorno vira reprovado sozinha depois desses dias */
 const DIAS_SIMULACAO=5;
 const MOTIVO_AUTO="Sem retorno do cliente";
@@ -795,17 +803,20 @@ async function copiar(txt,msg){  try{ await navigator.clipboard.writeText(txt); 
   }
   toast(msg||"Copiado.");
 }
-/* há quantas horas o lead está parado: só vale para quem continua
-   como veio da importação, ou seja, sem contato nenhum */
-function paradoHa(l){
+/* há quantos minutos o lead está sem contato, contados da autorização do cliente
+   (se a planilha não trouxe a data, vale a hora da importação) */
+function minutosSemContato(l){
   if((l.status||"NOVO")!=="NOVO") return null;
-  const base=l.criadoEm||l.atualizadoEm;
-  if(!base) return null;
-  const d=base.toDate?base.toDate():new Date(base);
-  if(isNaN(d)) return null;
-  const h=(Date.now()-d.getTime())/3600000;
-  return h>=HORAS_PARADO?Math.floor(h):null;
+  let t=null;
+  const a=autorizadoEm(l);
+  if(a) t=new Date(a).getTime();
+  else{ const base=l.criadoEm||l.atualizadoEm; if(base) t=(base.toDate?base.toDate():new Date(base)).getTime(); }
+  if(t===null||isNaN(t)) return null;
+  return Math.max(0,Math.floor((Date.now()-t)/60000));
 }
+function paradoHa(l){ const m=minutosSemContato(l); return (m!==null&&m>=MIN_QUENTE)?m:null; }
+function fmtDur(m){ return m<60?m+"min":(m<1440?Math.floor(m/60)+"h":Math.floor(m/1440)+"d"); }
+
 let toastT;
 function toast(msg){const t=el("toast");t.textContent=msg;t.classList.add("on");
   clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("on"),3200);}
@@ -882,7 +893,7 @@ function desligar(){
   if(S.relogioSim){ clearInterval(S.relogioSim); S.relogioSim=null; }
   S.simIdx=new Map(); S.simPronto=false;
   piscarTitulo(0);
-  S.leads=[];S.lotes=[];S.usuarios=[];S.resets=[];S.pedidos=[];S.roteiros=[];S.rotSel=null;S.loteAtual="";S.mes="";S.escopoChave="";S.leadsPorLote=new Map();
+  S.leads=[];S.lotes=[];S.usuarios=[];S.resets=[];S.pedidos=[];S.roteiros=[];S.rotSel=null;S.loteAtual="";S.mes="";S.escopoChave="";S.leadsPorLote=new Map();S.avisoSimFeito=false;
 }
 
 onAuthStateChanged(auth,async u=>{
@@ -991,6 +1002,28 @@ function pintarSeletorLote(){
 el("fMes").onchange=e=>{ S.mes=e.target.value; S.loteAtual=""; S.pag=1; pintarSeletorLote(); recarregaLeads(); };
 el("fLote").onchange=e=>{ S.loteAtual=e.target.value; S.pag=1; recarregaLeads(); };
 
+/* ao entrar, o vendedor vê quantas simulações enviadas ainda precisa acompanhar
+   (só as que continuam em "Simulação enviada"; reprovadas e vendidas ficam de fora) */
+function avisoSimulacoes(){
+  if(S.avisoSimFeito||!S.perfil||!["vendedor","vendgestor"].includes(S.perfil.perfil)) return;
+  S.avisoSimFeito=true;
+  const minhas=S.leads.filter(l=>l.respUid===S.user.uid&&(l.status||"")==="SIMULACAO");
+  if(!minhas.length) return;
+  minhas.sort((a,b)=>new Date(desdeSimulacao(a))-new Date(desdeSimulacao(b)));
+  const n=minhas.length, topo=minhas.slice(0,6);
+  const fechar=modal({titulo:"Simulações para acompanhar",
+    corpo:`<div style="text-align:center;margin:4px 0 14px">
+        <div style="font-size:42px;font-weight:700;color:var(--brand-2);line-height:1">${fmtNum(n)}</div>
+        <div style="color:var(--text-2);margin-top:4px">${n===1?"simulação enviada aguardando retorno do cliente":"simulações enviadas aguardando retorno do cliente"}</div></div>
+      <div class="dl" style="display:block">${topo.map(l=>`<div class="hist-i"><span class="q"><b>${esc(l.nome||"")}</b>${l.banco?` · ${esc(l.banco)}`:""}</span>
+        <span class="w">reprova sozinho em ${restaSimulacao(l)||"—"}</span></div>`).join("")}
+        ${n>topo.length?`<div style="color:var(--text-3);font-size:12.5px;padding-top:8px">e mais ${n-topo.length}…</div>`:""}</div>
+      <div class="dica" style="margin-top:10px">Simulação sem retorno por ${DIAS_SIMULACAO} dias vai para Reprovado automaticamente.</div>`,
+    pe:`<button class="btn" id="avFechar">Depois</button><button class="btn btn-primary" id="avVer">Ver minhas simulações</button>`});
+  el("avFechar").onclick=fechar;
+  el("avVer").onclick=()=>{ fechar(); irParaAba("leads"); S.filtro.marca=""; S.filtro.status="SIMULACAO"; S.pag=1; pintar(); };
+}
+
 /* uma escuta por lote do escopo; só recomeça se a lista de lotes mudou */
 function recarregaLeads(){
   const ids=lotesDoEscopo().map(l=>l.id), chave=ids.join("|");
@@ -1006,6 +1039,7 @@ function recarregaLeads(){
       pend.delete(loteId);
       S.leads=[].concat(...S.leadsPorLote.values());
       sincronizaSimulacoes();
+      if(pend.size===0) avisoSimulacoes();
       if(pend.size===0||S.leads.length) pintar();
       if(el("pResumo").classList.contains("on")) pintarResumo();
     },err=>toast("Erro ao carregar leads: "+msgErro(err))));
@@ -1058,16 +1092,12 @@ function filtrados(){
   });
   return r;
 }
-/* os 15% com autorizacao mais recente, ainda validos */
-function marcarQuentes(lista){
-  const comData=baseLeads().filter(l=>l.validoAte).map(l=>new Date(l.validoAte).getTime()).sort((a,b)=>b-a);
-  if(!comData.length) return new Set();
-  const corte=comData[Math.max(0,Math.min(comData.length-1,Math.floor(comData.length*0.15)))];
+/* quentes: sem contato e ainda dentro dos primeiros 30 min da autorização */
+function marcarQuentes(){
   const q=new Set();
   baseLeads().forEach(l=>{
-    if(!l.validoAte) return;
-    const t=new Date(l.validoAte).getTime();
-    if(t>=corte&&t>Date.now()&&(l.status||"NOVO")==="NOVO") q.add(l.id);
+    const m=minutosSemContato(l);
+    if(m!==null&&m<MIN_QUENTE&&autorizadoEm(l)&&new Date(l.validoAte).getTime()>Date.now()) q.add(l.id);
   });
   return q;
 }
@@ -1123,7 +1153,7 @@ function botoesContato(l){
 function selos(l){
   let s=QUENTES.has(l.id)?`<span class="selo-quente">🔥 quente</span>`:"";
   const ph=paradoHa(l);
-  if(ph!==null) s+=`<span class="selo-parado" title="Lead criado há ${ph}h e ninguém fez contato">❄️ lead esfriando há ${ph}h</span>`;
+  if(ph!==null) s+=`<span class="selo-parado" title="Autorizado há ${fmtDur(ph)} e ninguém fez contato">❄️ lead esfriando há ${fmtDur(ph)}</span>`;
   if((l.status||"NOVO")==="SIMULACAO"){
     const r=restaSimulacao(l);
     if(r) s+=`<span class="selo-parado" title="Sem retorno em ${DIAS_SIMULACAO} dias, o lead vai para Reprovado automaticamente">⏱ reprova sozinho em ${r}</span>`;
@@ -1392,7 +1422,7 @@ function pintarKpis(){
        <div class="val" style="color:var(--quente)">${fmtNum(quentes)}</div>
        <div class="sub">${m==="quente"?"filtro aplicado":"clique para filtrar"}</div></div>`
     +card("NOVO","Novo / sem contato lead esfriando",
-        esfriando?`❄️ ${fmtNum(esfriando)} esfriando (+${HORAS_PARADO}h)`:pc("NOVO"),
+        esfriando?`❄️ ${fmtNum(esfriando)} esfriando (+${MIN_QUENTE}min)`:pc("NOVO"),
         esfriando?`style="color:var(--parado);font-weight:600"`:"")
     +card("CONTATO","1º contato realizado aguard. resposta")
     +card("SIMULACAO","Simulação enviada acompanhar")

@@ -495,7 +495,7 @@ window.HORAS_VALIDADE = 24;
         <p class="d">Tudo o que você finalizou, da mais recente para a mais antiga.</p>
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>Cliente</th><th>Banco</th><th>Prazo</th><th>Parcela</th><th>Valor liberado</th><th>Fechada em</th></tr></thead>
+            <thead><tr><th>Cliente</th><th>Banco</th><th>Prazo</th><th>Parcela</th><th>Valor liberado</th><th>Data da venda</th></tr></thead>
             <tbody id="tbodyMinhasVendas"></tbody>
           </table>
         </div>
@@ -686,7 +686,7 @@ const STATUS={
   CONTATO:   {rot:"1º contato realizado", cor:"var(--contato)"},
   SIMULACAO: {rot:"Simulação enviada",    cor:"var(--nego)", exigeBanco:true},
   REPROVADO: {rot:"Reprovado",            cor:"var(--cancel)", exigeMotivo:true},
-  VENDA:     {rot:"Venda finalizada",     cor:"var(--venda)", exigeBanco:true}
+  VENDA:     {rot:"Venda finalizada",     cor:"var(--venda)", exigeBanco:true, exigeData:true}
 };
 const ORDEM_ST=["NOVO","CONTATO","SIMULACAO","REPROVADO","VENDA"];
 const PERFIS={
@@ -699,9 +699,6 @@ const PERFIS={
 /* o lead é "quente" nos primeiros minutos depois da autorização do cliente;
    passou disso sem contato, ele está esfriando */
 const MIN_QUENTE=30;
-/* simulação sem retorno vira reprovado sozinha depois desses dias */
-const DIAS_SIMULACAO=5;
-const MOTIVO_AUTO="Sem retorno do cliente";
 const CAMPOS=[
   {k:"nome",          rot:"Nome do cliente",   obrig:true,  alvos:["nome","cliente","nome do cliente"]},
   {k:"cpf",           rot:"CPF",               obrig:true,  alvos:["cpf","documento"]},
@@ -725,7 +722,7 @@ const ROTEIROS_PADRAO=[{"nome": "Ágil", "suspenso": false, "conteudo": "PÚBLIC
 const S={ user:null, perfil:null, pode:PERFIS.vendedor, lotes:[], loteAtual:"", mes:"", escopoChave:"", leadsPorLote:new Map(), leads:[],
   usuarios:[], resets:[], pedidos:[], roteiros:[], rotSel:null, unsubRoteiros:null, filtro:{busca:"",status:"",resp:"",marca:"",bancoProv:""}, ordem:"quente",
   pag:1, porPag:100, unsubLeads:null, unsubLotes:null, unsubUsrs:null, unsubResets:null,
-  unsubPedidos:null, unsubSim:null, simIdx:new Map(), simPronto:false, varrendo:false, relogioSim:null, imp:null, tituloBase:document.title, piscando:null, avisoOk:false };
+  unsubPedidos:null, imp:null, tituloBase:document.title, piscando:null, avisoOk:false };
 
 /* ===================== UTIL ===================== */
 const norm=s=>(s??"").toString().trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
@@ -815,6 +812,7 @@ function minutosSemContato(l){
   return Math.max(0,Math.floor((Date.now()-t)/60000));
 }
 function paradoHa(l){ const m=minutosSemContato(l); return (m!==null&&m>=MIN_QUENTE)?m:null; }
+function fmtDataVenda(l){ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(l.dataVenda||""); return m?`${m[3]}/${m[2]}/${m[1]}`:""; }
 function fmtDur(m){ return m<60?m+"min":(m<1440?Math.floor(m/60)+"h":Math.floor(m/1440)+"d"); }
 
 let toastT;
@@ -888,10 +886,8 @@ el("liReset").onclick=async()=>{
 el("btnSair").onclick=async()=>{ desligar(); await signOut(auth); };
 
 function desligar(){
-  ["unsubLeads","unsubLotes","unsubUsrs","unsubResets","unsubPedidos","unsubRoteiros","unsubSim"].forEach(k=>{ if(S[k]){S[k]();S[k]=null;} });
+  ["unsubLeads","unsubLotes","unsubUsrs","unsubResets","unsubPedidos","unsubRoteiros"].forEach(k=>{ if(S[k]){S[k]();S[k]=null;} });
   if(S.relogio){ clearInterval(S.relogio); S.relogio=null; }
-  if(S.relogioSim){ clearInterval(S.relogioSim); S.relogioSim=null; }
-  S.simIdx=new Map(); S.simPronto=false;
   piscarTitulo(0);
   S.leads=[];S.lotes=[];S.usuarios=[];S.resets=[];S.pedidos=[];S.roteiros=[];S.rotSel=null;S.loteAtual="";S.mes="";S.escopoChave="";S.leadsPorLote=new Map();S.avisoSimFeito=false;
 }
@@ -944,7 +940,6 @@ onAuthStateChanged(auth,async u=>{
   el("telaApp").classList.remove("hide"); el("telaApp").style.display="flex";
   ouvirLotes();
   ouvirRoteiros();
-  if(S.pode.altera||S.pode.importa) ouvirSimulacoes();
   if(S.pode.importa){ ouvirPedidos(); show("btnAtivarAviso",!S.avisoOk&&"Notification" in window); }
   if(S.pode.usuarios){ ouvirUsuarios(); ouvirResets(); }
   else if(S.pode.transfere) ouvirUsuarios();
@@ -1009,16 +1004,15 @@ function avisoSimulacoes(){
   S.avisoSimFeito=true;
   const minhas=S.leads.filter(l=>l.respUid===S.user.uid&&(l.status||"")==="SIMULACAO");
   if(!minhas.length) return;
-  minhas.sort((a,b)=>new Date(desdeSimulacao(a))-new Date(desdeSimulacao(b)));
+  minhas.sort((a,b)=>{ const ta=a.atualizadoEm&&a.atualizadoEm.seconds||0, tb=b.atualizadoEm&&b.atualizadoEm.seconds||0; return ta-tb; });
   const n=minhas.length, topo=minhas.slice(0,6);
   const fechar=modal({titulo:"Simulações para acompanhar",
     corpo:`<div style="text-align:center;margin:4px 0 14px">
         <div style="font-size:42px;font-weight:700;color:var(--brand-2);line-height:1">${fmtNum(n)}</div>
         <div style="color:var(--text-2);margin-top:4px">${n===1?"simulação enviada aguardando retorno do cliente":"simulações enviadas aguardando retorno do cliente"}</div></div>
       <div class="dl" style="display:block">${topo.map(l=>`<div class="hist-i"><span class="q"><b>${esc(l.nome||"")}</b>${l.banco?` · ${esc(l.banco)}`:""}</span>
-        <span class="w">reprova sozinho em ${restaSimulacao(l)||"—"}</span></div>`).join("")}
-        ${n>topo.length?`<div style="color:var(--text-3);font-size:12.5px;padding-top:8px">e mais ${n-topo.length}…</div>`:""}</div>
-      <div class="dica" style="margin-top:10px">Simulação sem retorno por ${DIAS_SIMULACAO} dias vai para Reprovado automaticamente.</div>`,
+        <span class="w">${l.atualizadoEm?"desde "+dataHora(l.atualizadoEm):""}</span></div>`).join("")}
+        ${n>topo.length?`<div style="color:var(--text-3);font-size:12.5px;padding-top:8px">e mais ${n-topo.length}…</div>`:""}</div>`,
     pe:`<button class="btn" id="avFechar">Depois</button><button class="btn btn-primary" id="avVer">Ver minhas simulações</button>`});
   el("avFechar").onclick=fechar;
   el("avVer").onclick=()=>{ fechar(); irParaAba("leads"); S.filtro.marca=""; S.filtro.status="SIMULACAO"; S.pag=1; pintar(); };
@@ -1038,7 +1032,6 @@ function recarregaLeads(){
       S.leadsPorLote.set(loteId,snap.docs.map(d=>({...d.data(),id:loteId+"__"+d.id,_lote:loteId,_cpf:d.id})));
       pend.delete(loteId);
       S.leads=[].concat(...S.leadsPorLote.values());
-      sincronizaSimulacoes();
       if(pend.size===0) avisoSimulacoes();
       if(pend.size===0||S.leads.length) pintar();
       if(el("pResumo").classList.contains("on")) pintarResumo();
@@ -1049,9 +1042,17 @@ function recarregaLeads(){
 
 /* ===================== FILTROS ===================== */
 /* vendedor só trabalha o que é dele ou está livre; o que é de colega não entra na fila */
+/* quem só enxerga os próprios leads nas situações "1º contato" e "Simulação" */
+const SO_PROPRIOS=["marcella moreira","aparecida dias"];
+function soProprios(){
+  const n=norm(S.perfil&&S.perfil.nome||"");
+  return !!n&&SO_PROPRIOS.some(x=>n.includes(x));
+}
 function baseLeads(){
-  if(!S.pode.foco) return S.leads;
-  return S.leads.filter(l=>l.respUid===S.user.uid||(!l.respUid&&(l.status||"NOVO")==="NOVO"));
+  let b=S.leads;
+  if(S.pode.foco) b=b.filter(l=>l.respUid===S.user.uid||(!l.respUid&&(l.status||"NOVO")==="NOVO"));
+  if(soProprios()) b=b.filter(l=>!["CONTATO","SIMULACAO"].includes(l.status||"NOVO")||l.respUid===S.user.uid);
+  return b;
 }
 function meusLeads(){ return S.pode.foco?S.leads.filter(l=>l.respUid===S.user.uid):S.leads; }
 el("fBusca").oninput=e=>{S.filtro.busca=norm(e.target.value);S.pag=1;pintar();};
@@ -1154,10 +1155,6 @@ function selos(l){
   let s=QUENTES.has(l.id)?`<span class="selo-quente">🔥 quente</span>`:"";
   const ph=paradoHa(l);
   if(ph!==null) s+=`<span class="selo-parado" title="Autorizado há ${fmtDur(ph)} e ninguém fez contato">❄️ lead esfriando há ${fmtDur(ph)}</span>`;
-  if((l.status||"NOVO")==="SIMULACAO"){
-    const r=restaSimulacao(l);
-    if(r) s+=`<span class="selo-parado" title="Sem retorno em ${DIAS_SIMULACAO} dias, o lead vai para Reprovado automaticamente">⏱ reprova sozinho em ${r}</span>`;
-  }
   return s;
 }
 function linha(l){
@@ -1225,7 +1222,7 @@ function pedirStatus(id,novo){
   const antes=l.status||"NOVO";
   if(antes===novo) return;
   const cfg=STATUS[novo];
-  if(!cfg.exigeBanco&&!cfg.exigeMotivo){ gravarStatus(l,novo,{}); return; }
+  if(!cfg.exigeBanco&&!cfg.exigeMotivo&&!cfg.exigeData){ gravarStatus(l,novo,{}); return; }
 
   const corpo=
     `<p style="margin:0 0 16px;color:var(--text-2)">Cliente <b>${esc(l.nome)}</b> → <span class="tag t-${novo}">${cfg.rot}</span></p>`+
@@ -1233,6 +1230,9 @@ function pedirStatus(id,novo){
        <input id="mdBanco" type="text" list="listaBancos" value="${esc(l.banco||"")}" placeholder="digite o nome do banco">
        <datalist id="listaBancos">${bancosUsados(l).map(b=>`<option value="${esc(b)}">`).join("")}</datalist>
        <div class="dica">Campo obrigatório. Se já usou antes, aparece na sugestão.</div></div>`:"")+
+    (cfg.exigeData?`<div class="campo"><label>Data da venda <span class="obrig">*</span></label>
+       <input id="mdData" type="date" max="${hoje()}" value="${esc(l.dataVenda||"")}">
+       <div class="dica">Informe o dia em que a venda foi realmente fechada.</div></div>`:"")+
     (cfg.exigeMotivo?`<div class="campo"><label>Motivo da reprovação <span class="obrig">*</span></label>
        <textarea id="mdObs" rows="3" placeholder="ex: margem insuficiente">${esc(l.obs||"")}</textarea>
        <div class="dica">Campo obrigatório. Vai para a observação do lead.</div></div>`:"")+
@@ -1243,13 +1243,19 @@ function pedirStatus(id,novo){
   el("mdNao").onclick=cancelar;
   el("mFundo").onclick=ev=>{ if(ev.target.id==="mFundo") cancelar(); };
   el("mX").onclick=cancelar;
-  setTimeout(()=>{ const f=el("mdBanco")||el("mdObs"); if(f) f.focus(); },60);
+  setTimeout(()=>{ const f=el("mdBanco")||el("mdData")||el("mdObs"); if(f) f.focus(); },60);
   el("mdSim").onclick=async()=>{
     const extra={};
     if(cfg.exigeBanco){
       const b=(el("mdBanco").value||"").trim();
       if(!b){ el("mdErro").textContent="Informe o banco para continuar."; show("mdErro",true); return; }
       extra.banco=b;
+    }
+    if(cfg.exigeData){
+      const d=el("mdData").value;
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){ el("mdErro").textContent="Informe a data da venda para continuar."; show("mdErro",true); return; }
+      if(d>hoje()){ el("mdErro").textContent="A data da venda não pode ser no futuro."; show("mdErro",true); return; }
+      extra.dataVenda=d;
     }
     if(cfg.exigeMotivo){
       const o=(el("mdObs").value||"").trim();
@@ -1282,9 +1288,6 @@ async function gravarStatus(l,novo,extra={},opt={}){
       historico:arrayUnion({quando:new Date().toISOString(),de:antes,para:novo,
         quem:S.perfil.nome||S.user.email,uid:S.user.uid,...(extra.banco?{banco:extra.banco}:{})})
     });
-    if(novo==="SIMULACAO") setDoc(doc(db,"simulacoes",simId(l._lote,l._cpf)),
-      {loteId:l._lote,leadId:l._cpf,nome:l.nome||"",desde:new Date().toISOString()}).catch(()=>{});
-    else if(antes==="SIMULACAO") deleteDoc(doc(db,"simulacoes",simId(l._lote,l._cpf))).catch(()=>{});
     if(!opt.silencioso) toast("Situação atualizada: "+STATUS[novo].rot);
   }catch(err){ toast("Não consegui salvar: "+msgErro(err)); pintar(); }
 }
@@ -1325,6 +1328,7 @@ function abrirFicha(id){
         <dt>Valor liberado</dt><dd class="mono dinheiro">${l.valorLiberado?fmtMoeda(l.valorLiberado):"—"}</dd>`}
         <dt>Prováveis bancos</dt><dd>${Array.isArray(l.bancosProv)?(l.bancosProv.length?chipsBancos(l,0).replace('margin-top:5px',''):'<span style="color:var(--text-3)">nenhum banco compatível na planilha</span>'):'<span style="color:var(--text-3)">não informado na planilha</span>'}</dd>
         <dt>Banco</dt><dd>${esc(l.banco||"—")}</dd>
+        ${st==="VENDA"&&l.dataVenda?`<dt>Data da venda</dt><dd class="mono">${fmtDataVenda(l)}</dd>`:""}
         <dt>Responsável</dt><dd>${esc(l.respNome||"ninguém ainda")}</dd>
         <dt>Atualizado</dt><dd>${dataHora(l.atualizadoEm)}</dd>
       </dl>
@@ -1338,6 +1342,9 @@ function abrirFicha(id){
         <label style="color:#9a4a06">Você escreveu uma observação. Quer atualizar a situação do lead?</label>
         <select id="fiStatus">${ORDEM_ST.map(s=>`<option value="${s}" ${s===st?"selected":""}>${STATUS[s].rot}</option>`).join("")}</select>
         <div class="dica">Deixe como está para só guardar a observação. Simulação e venda pedem o banco; reprovado pede o motivo.</div></div>
+      <div class="campo ${st==="VENDA"?"":"hide"}" id="fiVendaBox"><label>Data da venda <span class="obrig">*</span></label>
+        <input id="fiDataVenda" type="date" max="${hoje()}" value="${esc(l.dataVenda||"")}" style="max-width:190px">
+        <div class="dica">O dia em que a venda foi fechada (não é a data do registro no sistema).</div></div>
       <div id="fiErro" class="aviso aviso-erro hide"></div>`:""}
       ${S.pode.transfere&&S.pode.altera?`
       <div class="campo" style="border-top:1px dashed var(--border);padding-top:14px">
@@ -1378,6 +1385,7 @@ function abrirFicha(id){
     }catch(err){ toast("Não consegui transferir: "+msgErro(err)); el("fiTransfBtn").disabled=false; }
   };
   if(S.pode.altera){
+    el("fiStatus").onchange=()=>show("fiVendaBox",el("fiStatus").value==="VENDA");
     el("fiObs").oninput=()=>{
       const v=(el("fiObs").value||"").trim();
       show("fiStatusBox",v!==""&&v!==(l.obs||"").trim());
@@ -1388,6 +1396,11 @@ function abrirFicha(id){
       const falhar=m=>{ el("fiErro").textContent=m; show("fiErro",true); };
       if(STATUS[alvo].exigeBanco&&!banco) return falhar("Esta situação exige o banco preenchido.");
       if(STATUS[alvo].exigeMotivo&&obs.length<3) return falhar("Esta situação exige o motivo na observação.");
+      const dv=(el("fiDataVenda").value||"").trim();
+      if(alvo==="VENDA"){
+        if(alvo!==st&&!/^\d{4}-\d{2}-\d{2}$/.test(dv)) return falhar("Informe a data da venda.");
+        if(dv&&dv>hoje()) return falhar("A data da venda não pode ser no futuro.");
+      }
       /* prazo, parcela e valor liberado podem mudar conforme a simulação */
       const novoPrazo=parseInt(soDig(el("fiPrazo").value))||null;
       const novaParc=numBR(el("fiParcela").value), novoLib=numBR(el("fiLiberado").value);
@@ -1405,11 +1418,13 @@ function abrirFicha(id){
         const extra={};
         if(banco!==(l.banco||"")||STATUS[alvo].exigeBanco) extra.banco=banco;
         if(obs!==(l.obs||"")) extra.obs=obs;
+        if(alvo==="VENDA") extra.dataVenda=dv;
         await gravarStatus(l,alvo,extra);
       }else{
         const dados={};
         if(banco!==(l.banco||"")) dados.banco=banco;
         if(obs!==(l.obs||"")) dados.obs=obs;
+        if(st==="VENDA"&&dv&&dv!==(l.dataVenda||"")) dados.dataVenda=dv;
         if(Object.keys(dados).length) await salvarCampos(l,dados);
       }
       fechar();
@@ -1499,7 +1514,7 @@ function pintarResumo(){
     const mv=meus.filter(l=>(l.status||"")==="VENDA").sort((a,b)=>(b.atualizadoEm?.seconds||0)-(a.atualizadoEm?.seconds||0));
     el("tbodyMinhasVendas").innerHTML=mv.length?mv.map(l=>`<tr><td class="nome-cel">${esc(l.nome||"")}</td><td>${esc(l.banco||"—")}</td>
       <td class="mono">${esc(l.prazo||"")}</td><td class="mono">${fmtMoeda(Number(l.parcela)||0)}</td>
-      <td class="mono dinheiro">${fmtMoeda(Number(l.valorLiberado)||0)}</td><td>${dataHora(l.atualizadoEm)}</td></tr>`).join("")
+      <td class="mono dinheiro">${fmtMoeda(Number(l.valorLiberado)||0)}</td><td>${fmtDataVenda(l)||dataHora(l.atualizadoEm)}</td></tr>`).join("")
       :`<tr><td colspan="6" style="color:var(--text-3);padding:18px;text-align:center">Nenhuma venda ainda. Bora fechar a primeira!</td></tr>`;
   }
   const bk={};
@@ -1626,7 +1641,7 @@ el("btnExportarVendas").onclick=()=>{
     "TELEFONE":soDig(l.telefone), "MATRÍCULA":l.matricula||"",
     "BANCO":l.banco||"", "PRAZO":l.prazo||"", "PARCELA":Number(l.parcela)||0,
     "VALOR LIBERADO":Number(l.valorLiberado)||0,
-    "VENDEDOR":l.respNome||"", "FECHADA EM":dataHora(l.atualizadoEm),
+    "VENDEDOR":l.respNome||"", "DATA DA VENDA":fmtDataVenda(l)||"", "REGISTRADA NO SISTEMA EM":dataHora(l.atualizadoEm),
     "AUTORIZADO EM":soHora(autorizadoEm(l)), "OBSERVAÇÃO":l.obs||""
   }));
   const total=vendas.reduce((s,l)=>s+(Number(l.valorLiberado)||0),0);
@@ -1980,66 +1995,6 @@ el("btnModelo").onclick=()=>{
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Leads");
   XLSX.writeFile(wb,"modelo_importacao_leads.xlsx");
 };
-
-/* ===================== SIMULAÇÃO SEM RETORNO (5 DIAS) ===================== */
-/* Não existe servidor aqui, então a conferência roda no navegador de quem estiver
-   com o painel aberto (vendedor, importador ou admin). Uma lista pequena
-   "simulacoes" guarda só os leads em simulação, para não precisar ler todos os lotes. */
-const simId=(lote,lead)=>lote+"__"+lead;
-function desdeSimulacao(l){
-  let d=null;
-  (l.historico||[]).forEach(h=>{ if(h.para==="SIMULACAO"&&h.quando&&(!d||h.quando>d)) d=h.quando; });
-  if(d) return d;
-  const t=l.atualizadoEm||l.criadoEm;
-  const x=t?(t.toDate?t.toDate():new Date(t)):new Date();
-  return (isNaN(x)?new Date():x).toISOString();
-}
-function restaSimulacao(l){
-  const ms=new Date(desdeSimulacao(l)).getTime()+DIAS_SIMULACAO*86400000-Date.now();
-  if(isNaN(ms)) return null;
-  if(ms<=0) return "instantes";
-  return ms>=86400000?Math.ceil(ms/86400000)+"d":Math.ceil(ms/3600000)+"h";
-}
-function ouvirSimulacoes(){
-  S.unsubSim=onSnapshot(collection(db,"simulacoes"),snap=>{
-    S.simIdx=new Map(snap.docs.map(d=>[d.id,d.data()]));
-    S.simPronto=true; sincronizaSimulacoes();
-  },()=>{});
-  if(S.relogioSim) clearInterval(S.relogioSim);
-  S.relogioSim=setInterval(sincronizaSimulacoes,10*60000);
-}
-async function sincronizaSimulacoes(){
-  if(!S.simPronto||S.varrendo||!(S.pode.altera||S.pode.importa)) return;
-  S.varrendo=true;
-  try{
-    /* garante que todo lead em simulação do lote aberto está na lista */
-    for(const l of S.leads){
-      if((l.status||"")!=="SIMULACAO") continue;
-      const id=simId(l._lote,l._cpf);
-      if(S.simIdx.has(id)) continue;
-      const dados={loteId:l._lote,leadId:l._cpf,nome:l.nome||"",desde:desdeSimulacao(l)};
-      await setDoc(doc(db,"simulacoes",id),dados);
-      S.simIdx.set(id,dados);
-    }
-    /* quem passou de 5 dias sem retorno vira reprovado */
-    const limite=Date.now()-DIAS_SIMULACAO*86400000;
-    for(const [id,e] of [...S.simIdx]){
-      if(new Date(e.desde).getTime()>limite) continue;
-      const ref=doc(db,"lotes",e.loteId,"leads",e.leadId);
-      const snap=await getDoc(ref);
-      if(!snap.exists()||(snap.data().status||"")!=="SIMULACAO"){ await deleteDoc(doc(db,"simulacoes",id)); S.simIdx.delete(id); continue; }
-      const ld=snap.data(), real=desdeSimulacao(ld);
-      if(new Date(real).getTime()>limite){ await setDoc(doc(db,"simulacoes",id),{...e,desde:real}); continue; }
-      const obs=(ld.obs||"").trim();
-      const novaObs=obs?(obs.includes(MOTIVO_AUTO)?obs:obs+" | "+MOTIVO_AUTO):MOTIVO_AUTO;
-      await updateDoc(ref,{status:"REPROVADO",obs:novaObs,atualizadoEm:serverTimestamp(),
-        historico:arrayUnion({quando:new Date().toISOString(),de:"SIMULACAO",para:"REPROVADO",
-          quem:"Automático ("+DIAS_SIMULACAO+" dias sem retorno)",uid:S.user.uid,auto:true})});
-      await deleteDoc(doc(db,"simulacoes",id)); S.simIdx.delete(id);
-    }
-  }catch(err){ /* sem permissão ou sem rede: tenta de novo no próximo ciclo */ }
-  finally{ S.varrendo=false; }
-}
 
 /* ===================== PEDIDOS DE LEADS ===================== */
 el("btnPedirLeads").onclick=()=>{

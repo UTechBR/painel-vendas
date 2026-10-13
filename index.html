@@ -1075,7 +1075,7 @@ function filtrados(){
     if(f.resp==="__livres"&&l.respUid) return false;
     if(f.resp&&!f.resp.startsWith("__")&&l.respUid!==f.resp) return false;
     if(f.bancoProv){
-      const a=Array.isArray(l.bancosProv)?l.bancosProv:null;
+      const a=provOrd(l);
       if(f.bancoProv==="__sem"){ if(!a||a.length) return false; }
       else if(!a||!a.some(b=>bancoKey(b)===f.bancoProv)) return false;
     }
@@ -1843,10 +1843,11 @@ function achaRoteiro(nome){
 }
 /* Neon é o banco prioritário: sempre aparece primeiro na lista de indicação */
 function provOrd(l){
+  /* só indica banco que tem roteiro cadastrado, mesmo que venha na planilha */
+  const lista=Array.isArray(l&&l.bancosProv)?l.bancosProv.filter(b=>achaRoteiro(b)):null;
   const neon=S.roteiros.find(r=>bancoKey(r.nome)===BANCO_PRIORITARIO&&!r.suspenso);
-  const a=Array.isArray(l&&l.bancosProv)?l.bancosProv.filter(b=>bancoKey(b)!==BANCO_PRIORITARIO):null;
-  if(!neon) return Array.isArray(l&&l.bancosProv)?l.bancosProv:null;
-  return [neon.nome].concat(a||[]);
+  if(!neon) return lista;
+  return [neon.nome].concat((lista||[]).filter(b=>bancoKey(b)!==BANCO_PRIORITARIO));
 }
 function chipsBancos(l,max){
   const a=provOrd(l);

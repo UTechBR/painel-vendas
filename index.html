@@ -160,6 +160,7 @@
   .t-SIMULACAO{background:var(--nego-bg);color:var(--nego)}
   .t-REPROVADO{background:var(--cancel-bg);color:var(--cancel)}
   .t-VENDA{background:var(--venda-bg);color:var(--venda)}
+  .selo-origem{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;text-transform:capitalize;background:#e0f2fe;color:#075985;border:1px solid #b9e0f7;white-space:nowrap}
   .selo-quente{background:var(--quente-bg);color:var(--quente);border:1px solid #ffd9bd;
     padding:1px 7px;border-radius:999px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
   .selo-parado{background:var(--parado-bg);color:var(--parado);border:1px solid #fbe0ab;
@@ -1080,7 +1081,7 @@ function filtrados(){
       else if(!a||!a.some(b=>bancoKey(b)===f.bancoProv)) return false;
     }
     if(f.busca){
-      const alvo=norm(l.nome)+" "+soDig(l.cpf)+" "+soDig(l.telefone)+" "+norm(l.matricula);
+      const alvo=norm(l.nome)+" "+soDig(l.cpf)+" "+soDig(l.telefone)+" "+norm(l.matricula)+" "+norm(l.origem||"");
       if(!alvo.includes(f.busca)&&!alvo.includes(soDig(f.busca)||"\u0000")) return false;
     }
     return true;
@@ -1159,6 +1160,7 @@ function botoesContato(l){
 }
 function selos(l){
   let s=QUENTES.has(l.id)?`<span class="selo-quente">🔥 quente</span>`:"";
+  if(l.origem) s+=`<span class="selo-origem" title="Origem do lead">🛒 ${esc(String(l.origem).toLowerCase())}</span>`;
   const ph=paradoHa(l);
   if(ph!==null) s+=`<span class="selo-parado" title="Autorizado há ${fmtDur(ph)} e ninguém fez contato">❄️ lead esfriando há ${fmtDur(ph)}</span>`;
   return s;
@@ -1332,6 +1334,7 @@ function abrirFicha(id){
         :`<dt>Prazo</dt><dd class="mono">${l.prazo?l.prazo+"x":"—"}</dd>
         <dt>Parcela</dt><dd class="mono">${l.parcela?fmtMoeda(l.parcela):"—"}</dd>
         <dt>Valor liberado</dt><dd class="mono dinheiro">${l.valorLiberado?fmtMoeda(l.valorLiberado):"—"}</dd>`}
+        ${l.origem?`<dt>Origem</dt><dd><span class="selo-origem" style="margin-left:0">🛒 ${esc(String(l.origem).toLowerCase())}</span></dd>`:""}
         <dt>Prováveis bancos</dt><dd>${Array.isArray(provOrd(l))?(provOrd(l).length?chipsBancos(l,0).replace('margin-top:5px',''):'<span style="color:var(--text-3)">nenhum banco compatível na planilha</span>'):'<span style="color:var(--text-3)">não informado na planilha</span>'}</dd>
         <dt>Banco</dt><dd>${esc(l.banco||"—")}</dd>
         ${st==="VENDA"&&l.dataVenda?`<dt>Data da venda</dt><dd class="mono">${fmtDataVenda(l)}</dd>`:""}
@@ -1625,6 +1628,7 @@ el("btnExportar").onclick=()=>{
     "MATRÍCULA":l.matricula||"", "PRAZO":l.prazo||"", "PARCELA":Number(l.parcela)||0,
     "VALOR LIBERADO":Number(l.valorLiberado)||0, "TELEFONE":soDig(l.telefone),
     "POSSUI WHATSAPP":l.whatsapp?"SIM":"NÃO",
+    "ORIGEM":l.origem||"",
     "PROVÁVEIS BANCOS COMPATÍVEIS":(provOrd(l)||[]).join(", "),
     "AUTORIZADO EM":soHora(autorizadoEm(l)), "VÁLIDO ATÉ":soHora(l.validoAte),
     "SITUAÇÃO":STATUS[l.status||"NOVO"].rot, "BANCO":l.banco||"",
@@ -1747,6 +1751,21 @@ function parseCSV(txt,sep){
   if(campo!==""||linha.length){ linha.push(campo); out.push(linha); }
   return out;
 }
+/* aceita lista simples ("Facta, Soma") e também o formato do carrinho abandonado:
+   "CAMPANHA · Banco · Etapa · Situação" (aí o banco é o segundo item) */
+function lerBancos(txt){
+  const t=String(txt||"");
+  if(!t.includes("·")) return t.split(/[,;]+/).map(x=>x.trim()).filter(Boolean);
+  const seg=t.split("·").map(x=>x.trim()).filter(Boolean);
+  const achado=seg.slice(1).find(x=>achaRoteiro(x));
+  const banco=achado||(seg.length>=3?seg[1]:seg[0]);
+  return banco?[banco]:[];
+}
+/* no formato do carrinho abandonado o primeiro item é a origem do lead */
+function lerOrigem(txt){
+  const seg=String(txt||"").split("·").map(x=>x.trim()).filter(Boolean);
+  return seg.length>=2?seg[0].replace(/\s+/g," "):"";
+}
 function montaLead(r){
   const m=S.imp.mapa, g=k=>m[k]>=0?limpaCelula(r[m[k]]):"";
   const zap=norm(g("whatsapp"));
@@ -1761,13 +1780,14 @@ function montaLead(r){
     valorLiberado:numBR(g("valorLiberado")),
     validoAte:paraISO(g("validoAte")),
     whatsapp:m.whatsapp>=0?["sim","s","true","1","yes","y"].includes(zap):null,
-    bancosProv:m.bancosProv>=0?g("bancosProv").split(/[,;]+/).map(x=>x.trim()).filter(Boolean):null
+    bancosProv:m.bancosProv>=0?lerBancos(g("bancosProv")):null,
+    origem:m.bancosProv>=0?lerOrigem(g("bancosProv")):""
   };
 }
 function previa(){
   const l5=S.imp.linhas.slice(0,5).map(montaLead);
   el("prevTbl").innerHTML=`<table><thead><tr>
-    <th>Nome</th><th>CPF</th><th>Nasc.</th><th>Telefone</th><th>Prazo</th><th>Parcela</th><th>Valor</th><th>Autorizado</th><th>Zap</th><th>Prováveis bancos</th></tr></thead><tbody>
+    <th>Nome</th><th>CPF</th><th>Nasc.</th><th>Telefone</th><th>Prazo</th><th>Parcela</th><th>Valor</th><th>Autorizado</th><th>Zap</th><th>Origem</th><th>Prováveis bancos</th></tr></thead><tbody>
     ${l5.map(l=>{const a=autorizadoEm(l);return `<tr>
       <td>${esc(l.nome)||'<span class="obrig">vazio</span>'}</td>
       <td class="mono">${l.cpf?fmtCPF(l.cpf):'<span class="obrig">vazio</span>'}</td>
@@ -1778,6 +1798,7 @@ function previa(){
       <td class="mono">${l.valorLiberado?fmtMoeda(l.valorLiberado):"—"}</td>
       <td class="mono">${a?soHora(a):"—"}</td>
       <td>${l.whatsapp===null?"—":(l.whatsapp?"SIM":"NÃO")}</td>
+      <td>${l.origem?esc(l.origem.toLowerCase()):"—"}</td>
       <td style="min-width:200px">${l.bancosProv===null?"—":(l.bancosProv.length?esc(l.bancosProv.join(", ")):'<span style="color:var(--text-3)">nenhum</span>')}</td></tr>`}).join("")}
     </tbody></table>`;
 }
@@ -1806,6 +1827,7 @@ el("btnImportar").onclick=async()=>{
       const l=leads[i], ja=atuais.get(l.id), dados={...l};
       delete dados.id;
       if(dados.bancosProv===null) delete dados.bancosProv;
+      if(!dados.origem) delete dados.origem;
       if(ja){ mantidos++; lote.set(doc(db,"lotes",loteId,"leads",l.id),dados,{merge:true}); }
       else{ novos++; lote.set(doc(db,"lotes",loteId,"leads",l.id),{
         ...dados,status:"NOVO",obs:"",banco:"",respUid:null,respNome:null,

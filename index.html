@@ -445,7 +445,7 @@ window.HORAS_VALIDADE = 24;
           <table>
             <thead>
               <tr>
-                <th>Cliente</th><th>Nascimento</th><th>Telefone</th><th>Autorizado</th>
+                <th>Cliente</th><th>Origem</th><th>Nascimento</th><th>Telefone</th><th>Autorizado</th>
                 <th>Prazo</th><th>Parcela</th><th>Liberado</th>
                 <th>Situação</th><th>Banco</th><th>Resp.</th><th>Obs.</th><th></th>
               </tr>
@@ -573,6 +573,10 @@ window.HORAS_VALIDADE = 24;
         <p class="d" id="mapaInfo"></p>
         <div class="map-grid" id="mapaCampos"></div>
         <div class="campo" style="margin-top:16px;max-width:320px"><label>Nome do lote</label><input id="loteNome" type="text"></div>
+        <div class="campo" style="margin-top:12px;max-width:420px"><label>De onde vieram esses leads? <span style="font-weight:400;color:var(--text-3)">(origem)</span></label>
+          <input id="loteOrigem" type="text" list="listaOrigens" placeholder="ex: Carrinho Abandonado Vende Aí">
+          <datalist id="listaOrigens"><option value="Carrinho Abandonado Vende Aí"><option value="Lista diária"><option value="Indicação"><option value="Site"></datalist>
+          <div class="dica">Vale para todos os leads do arquivo que não trouxerem a origem. Se o arquivo tiver uma coluna de origem, ela tem prioridade.</div></div>
         <div class="aviso aviso-info">Se o lote já existir, os leads novos entram e os que já estavam <b>mantêm a situação, o banco e o responsável</b>.</div>
         <div class="prev-tbl" id="prevTbl"></div>
         <div style="display:flex;gap:9px;margin-top:16px;flex-wrap:wrap">
@@ -712,6 +716,7 @@ const CAMPOS=[
   {k:"valorLiberado", rot:"Valor liberado",    obrig:false, alvos:["valor liberado","liberado","valor"]},
   {k:"validoAte",     rot:"Válido até",        obrig:false, alvos:["valido ate","válido até","validade","expira em"]},
   {k:"whatsapp",      rot:"Possui WhatsApp",   obrig:false, alvos:["possui whatsapp","whatsapp","zap"]},
+  {k:"origem",        rot:"Origem do lead",   obrig:false, alvos:["origem","origem do lead","canal","fonte"]},
   {k:"bancosProv",    rot:"Prováveis bancos compatíveis", obrig:false, alvos:["provaveis bancos compativeis","provaveis bancos","bancos compativeis","bancos provaveis"]}
 ];
 /* layout padrão da planilha diária (mesma ordem das colunas) */
@@ -1158,9 +1163,9 @@ function botoesContato(l){
     (z?`<a class="ico zap" href="${z}" target="_blank" rel="noopener" title="WhatsApp" data-zap="${l.id}">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.1-.7.1-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-1.6-.8-2.8-2-3.4-3.4-.1-.2 0-.4.1-.5.2-.2.5-.6.7-.8.1-.2.2-.4.1-.6-.1-.3-.7-1.8-1-2.2-.2-.4-.5-.3-.7-.3h-.6c-.2 0-.5.1-.8.4-.9.9-1.1 2-.7 3.3.5 1.5 1.6 3 2.7 4.1 1.4 1.4 3.2 2.3 4.6 2.4 1 .1 1.9-.2 2.5-.9.3-.3.4-.7.4-1v-.4c0-.1-.1-.2-.1-.2z"/><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2z"/></svg></a>`:"");
 }
-function selos(l){
+function selos(l,semOrigem){
   let s=QUENTES.has(l.id)?`<span class="selo-quente">🔥 quente</span>`:"";
-  if(l.origem) s+=`<span class="selo-origem" title="Origem do lead">🛒 ${esc(String(l.origem).toLowerCase())}</span>`;
+  if(l.origem&&!semOrigem) s+=`<span class="selo-origem" title="Origem do lead">🛒 ${esc(String(l.origem).toLowerCase())}</span>`;
   const ph=paradoHa(l);
   if(ph!==null) s+=`<span class="selo-parado" title="Autorizado há ${fmtDur(ph)} e ninguém fez contato">❄️ lead esfriando há ${fmtDur(ph)}</span>`;
   return s;
@@ -1168,7 +1173,8 @@ function selos(l){
 function linha(l){
   const st=l.status||"NOVO", a=autorizadoEm(l), id=idade(l.nascimento), ph=paradoHa(l);
   return `<tr class="${QUENTES.has(l.id)?"quente":""} ${ph!==null?"parado":""}">
-    <td><div class="nome-cel">${esc(l.nome)} ${selos(l)}</div><div class="cpf mono">${fmtCPF(l.cpf)}</div>${chipsBancos(l,3)}</td>
+    <td><div class="nome-cel">${esc(l.nome)} ${selos(l,true)}</div><div class="cpf mono">${fmtCPF(l.cpf)}</div>${chipsBancos(l,3)}</td>
+    <td>${l.origem?`<span class="selo-origem" style="margin-left:0" title="Origem do lead">${esc(String(l.origem).toLowerCase())}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
     <td class="mono">${soData(l.nascimento)}${id!==null?`<div style="color:var(--text-3);font-size:11.5px">${id} anos</div>`:""}</td>
     <td class="mono tel-cel">${fmtTel(l.telefone)}${l.whatsapp?' <span style="color:#15803d" title="Possui WhatsApp">●</span>':""}</td>
     <td class="mono nowrap" style="font-size:12px">${a?soHora(a):"—"}</td>
@@ -1334,7 +1340,11 @@ function abrirFicha(id){
         :`<dt>Prazo</dt><dd class="mono">${l.prazo?l.prazo+"x":"—"}</dd>
         <dt>Parcela</dt><dd class="mono">${l.parcela?fmtMoeda(l.parcela):"—"}</dd>
         <dt>Valor liberado</dt><dd class="mono dinheiro">${l.valorLiberado?fmtMoeda(l.valorLiberado):"—"}</dd>`}
-        ${l.origem?`<dt>Origem</dt><dd><span class="selo-origem" style="margin-left:0">🛒 ${esc(String(l.origem).toLowerCase())}</span></dd>`:""}
+        ${S.pode.importa
+          ?`<dt>Origem</dt><dd><div style="display:flex;gap:6px;flex-wrap:wrap"><input id="fiOrigem" type="text" list="listaOrigens2" value="${esc(l.origem||"")}" placeholder="de onde veio o lead" style="flex:1;min-width:180px">
+              <datalist id="listaOrigens2"><option value="Carrinho Abandonado Vende Aí"><option value="Lista diária"><option value="Indicação"><option value="Site"></datalist>
+              <button class="btn btn-sm" id="fiOrigemBtn">Salvar origem</button></div></dd>`
+          :(l.origem?`<dt>Origem</dt><dd><span class="selo-origem" style="margin-left:0">${esc(String(l.origem).toLowerCase())}</span></dd>`:"")}
         <dt>Prováveis bancos</dt><dd>${Array.isArray(provOrd(l))?(provOrd(l).length?chipsBancos(l,0).replace('margin-top:5px',''):'<span style="color:var(--text-3)">nenhum banco compatível na planilha</span>'):'<span style="color:var(--text-3)">não informado na planilha</span>'}</dd>
         <dt>Banco</dt><dd>${esc(l.banco||"—")}</dd>
         ${st==="VENDA"&&l.dataVenda?`<dt>Data da venda</dt><dd class="mono">${fmtDataVenda(l)}</dd>`:""}
@@ -1380,6 +1390,13 @@ function abrirFicha(id){
     pe:`${z?`<a class="btn" href="${z}" target="_blank" rel="noopener">Abrir WhatsApp</a>`:""}
         ${S.pode.altera?`<button class="btn btn-primary" id="fiSalvar">Salvar</button>`:""}`
   });
+  if(S.pode.importa&&el("fiOrigemBtn")) el("fiOrigemBtn").onclick=async()=>{
+    const v=el("fiOrigem").value.replace(/\s+/g," ").trim();
+    el("fiOrigemBtn").disabled=true;
+    try{ await updateDoc(doc(db,"lotes",l._lote,"leads",l._cpf),{origem:v}); toast("Origem salva."); }
+    catch(err){ toast("Não consegui salvar: "+msgErro(err)); }
+    el("fiOrigemBtn").disabled=false;
+  };
   if(S.pode.transfere&&S.pode.altera&&el("fiTransfBtn")) el("fiTransfBtn").onclick=async()=>{
     const uid=el("fiTransf").value; if(!uid){ toast("Escolha para quem transferir."); return; }
     const u=S.usuarios.find(x=>x.uid===uid); if(!u) return;
@@ -1781,7 +1798,7 @@ function montaLead(r){
     validoAte:paraISO(g("validoAte")),
     whatsapp:m.whatsapp>=0?["sim","s","true","1","yes","y"].includes(zap):null,
     bancosProv:m.bancosProv>=0?lerBancos(g("bancosProv")):null,
-    origem:m.bancosProv>=0?lerOrigem(g("bancosProv")):""
+    origem:(g("origem")||(m.bancosProv>=0?lerOrigem(g("bancosProv")):"")||((el("loteOrigem")&&el("loteOrigem").value)||"")).replace(/\s+/g," ").trim()
   };
 }
 function previa(){
@@ -1802,6 +1819,7 @@ function previa(){
       <td style="min-width:200px">${l.bancosProv===null?"—":(l.bancosProv.length?esc(l.bancosProv.join(", ")):'<span style="color:var(--text-3)">nenhum</span>')}</td></tr>`}).join("")}
     </tbody></table>`;
 }
+el("loteOrigem").oninput=()=>{ if(S.imp) previa(); };
 el("btnImportar").onclick=async()=>{
   if(!S.imp) return;
   const falta=CAMPOS.filter(c=>c.obrig&&!(S.imp.mapa[c.k]>=0)).map(c=>c.rot);

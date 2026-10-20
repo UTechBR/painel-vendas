@@ -434,6 +434,7 @@ window.HORAS_VALIDADE = 24;
           <h2 id="tituloLista">Leads</h2>
           <span class="chip" id="chipQtd">0</span>
           <div style="flex:1"></div>
+          <button class="btn btn-sm btn-primary podeImportar hide" id="btnNovoLead" title="Cadastrar um lead sem importar planilha">➕ Adicionar lead</button>
           <select class="sel btn-sm" id="fPorPag" style="padding:5px 8px">
             <option value="50">50 por página</option>
             <option value="100" selected>100 por página</option>
@@ -553,7 +554,9 @@ window.HORAS_VALIDADE = 24;
         <button class="btn btn-sm hide" id="btnAtivarAviso" style="margin-top:12px">🔔 Ativar aviso no computador</button>
       </div>
       <div class="cx">
-        <h2>Importar planilha de leads</h2>
+        <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;justify-content:space-between">
+          <h2 style="margin:0">Importar planilha de leads</h2>
+          <button class="btn btn-sm" id="btnNovoLead2">➕ Adicionar um lead manualmente</button></div>
         <p class="d">Aceita <b>.csv</b>, <b>.xlsx</b> e <b>.xls</b>. Os leads ficam visíveis para toda a equipe na hora.</p>
         <details style="margin:-4px 0 14px;font-size:12.5px;color:var(--text-2)">
           <summary style="cursor:pointer;font-weight:600">Layout esperado da planilha</summary>
@@ -1827,7 +1830,7 @@ el("btnImportar").onclick=async()=>{
   const loteId=(el("loteNome").value.trim()||hoje()).replace(/[\/\\#\[\]*?:]/g,"-");
   const brutos=S.imp.linhas.map(montaLead).filter(l=>l.nome&&(l.cpf||l.telefone));
   if(!brutos.length){ toast("Nenhuma linha válida (precisa ter nome e CPF ou telefone)."); return; }
-  const vistos=new Set(); let leads=[];
+  const vistos=new Set(), leads=[];
   for(const l of brutos){
     const id=(l.cpf||soDig(l.telefone)).padStart(3,"0");
     if(vistos.has(id)) continue;
@@ -1837,30 +1840,6 @@ el("btnImportar").onclick=async()=>{
   el("btnImportar").disabled=true; show("cxProg",true);
   const prog=(f,t,msg)=>{ el("progBar").style.width=(t?f/t*100:0)+"%"; el("progTxt").textContent=msg; };
   try{
-    /* duplicidade entre lotes: se o CPF (ou telefone) já foi importado em OUTRO lote, não entra de novo */
-    prog(0,1,"Verificando duplicados nos outros lotes…");
-    const emOutros=new Map();
-    const lotesSnap=await getDocs(collection(db,"lotes"));
-    for(const ld of lotesSnap.docs){
-      if(ld.id===loteId) continue;
-      (await getDocs(collection(db,"lotes",ld.id,"leads"))).forEach(d=>{
-        if(!emOutros.has(d.id)) emOutros.set(d.id,ld.id);
-      });
-    }
-    const jaEmOutros=[];
-    leads=leads.filter(l=>{
-      const lt=emOutros.get(l.id);
-      if(lt){ jaEmOutros.push({nome:l.nome,cpf:l.cpf,lote:lt}); return false; }
-      return true;
-    });
-    if(!leads.length){
-      show("cxProg",false); el("btnImportar").disabled=false;
-      modal({titulo:"Nada para importar",
-        corpo:`<div class="aviso">Todos os ${fmtNum(jaEmOutros.length)} lead(s) dessa planilha já existem em outros lotes. Nada foi gravado.</div>
-          <div style="margin-top:10px;max-height:240px;overflow:auto;font-size:13px">${jaEmOutros.map(x=>`${esc(x.nome)} · ${x.cpf?fmtCPF(x.cpf):"sem CPF"} · lote ${esc(x.lote)}`).join("<br>")}</div>`,
-        pe:`<button class="btn btn-primary" onclick="document.getElementById('modalHost').innerHTML=''">Fechar</button>`});
-      return;
-    }
     prog(0,1,"Verificando o que já existe nesse lote…");
     const atuais=new Map();
     (await getDocs(collection(db,"lotes",loteId,"leads"))).forEach(d=>atuais.set(d.id,d.data()));
@@ -1888,13 +1867,85 @@ el("btnImportar").onclick=async()=>{
       corpo:`<div class="aviso aviso-ok">O lote <b>${esc(loteId)}</b> está no ar para a equipe.</div>
         <dl class="dl"><dt>Leads novos</dt><dd>${fmtNum(novos)}</dd>
         <dt>Já existiam</dt><dd>${fmtNum(mantidos)} (situação, banco e responsável preservados)</dd>
-        ${dup?`<dt>Repetidos na planilha</dt><dd>${fmtNum(dup)} linha(s) ignorada(s)</dd>`:""}
-        ${jaEmOutros.length?`<dt>Já estavam em outros lotes</dt><dd>${fmtNum(jaEmOutros.length)} lead(s) ignorado(s), não foram gravados de novo</dd>`:""}
-        <dt>Total no lote</dt><dd><b>${fmtNum(totalFinal)}</b></dd></dl>
-        ${jaEmOutros.length?`<div class="aviso" style="margin-top:12px"><b>Ignorados por já existirem em outro lote:</b><div style="max-height:200px;overflow:auto;font-size:13px;margin-top:6px">${jaEmOutros.map(x=>`${esc(x.nome)} · ${x.cpf?fmtCPF(x.cpf):"sem CPF"} · lote ${esc(x.lote)}`).join("<br>")}</div></div>`:""}`,
+        ${dup?`<dt>Duplicados</dt><dd>${fmtNum(dup)} linha(s) ignorada(s)</dd>`:""}
+        <dt>Total no lote</dt><dd><b>${fmtNum(totalFinal)}</b></dd></dl>`,
       pe:`<button class="btn btn-primary" onclick="document.getElementById('modalHost').innerHTML=''">Fechar</button>`});
   }catch(err){ toast("Erro na importação: "+msgErro(err)); el("btnImportar").disabled=false; }
 };
+
+
+/* ===================== LEAD MANUAL ===================== */
+function cpfValido(c){
+  const d=soDig(c); if(d.length!==11||/^(\d)\1{10}$/.test(d)) return false;
+  for(const t of [9,10]){
+    let sm=0; for(let i=0;i<t;i++) sm+=(+d[i])*(t+1-i);
+    const dv=(sm*10)%11%10; if(dv!==+d[t]) return false;
+  }
+  return true;
+}
+function novoLeadManual(){
+  if(!S.pode.importa) return;
+  const fechar=modal({titulo:"Adicionar lead manualmente", largura:"640px",
+    corpo:`<div class="map-grid">
+        <div class="campo"><label>Nome do cliente <span class="obrig">*</span></label><input id="nlNome" type="text"></div>
+        <div class="campo"><label>CPF <span class="obrig">*</span></label><input id="nlCpf" type="text" inputmode="numeric" placeholder="000.000.000-00"></div>
+        <div class="campo"><label>Telefone (com DDD) <span class="obrig">*</span></label><input id="nlTel" type="text" inputmode="tel" placeholder="(31) 99999-9999"></div>
+        <div class="campo"><label>Data de nascimento</label><input id="nlNasc" type="date"></div>
+        <div class="campo"><label>Origem do lead</label><input id="nlOrigem" type="text" list="nlOrigens" placeholder="ex: Indicação">
+          <datalist id="nlOrigens"><option value="Carrinho Abandonado Vende Aí"><option value="Lista diária"><option value="Indicação"><option value="Site"></datalist></div>
+        <div class="campo"><label>Autorizado em <span style="font-weight:400;color:var(--text-3)">(se souber)</span></label><input id="nlAut" type="datetime-local"></div>
+        <div class="campo"><label>Matrícula</label><input id="nlMat" type="text"></div>
+        <div class="campo"><label>Possui WhatsApp?</label><select id="nlZap"><option value="">Não sei</option><option value="1">Sim</option><option value="0">Não</option></select></div>
+        <div class="campo"><label>Prazo (meses)</label><input id="nlPrazo" type="text" inputmode="numeric"></div>
+        <div class="campo"><label>Parcela</label><input id="nlParc" type="text" inputmode="decimal" placeholder="0,00"></div>
+        <div class="campo"><label>Valor liberado</label><input id="nlVal" type="text" inputmode="decimal" placeholder="0,00"></div>
+        <div class="campo"><label>Lote</label><input id="nlLote" type="text" value="${hoje()}"></div>
+      </div>
+      <div class="campo"><label>Prováveis bancos <span style="font-weight:400;color:var(--text-3)">(separe por vírgula)</span></label><input id="nlBancos" type="text" placeholder="ex: Facta, Soma"></div>
+      <div class="dica">Só nome, CPF e telefone são obrigatórios. O lead entra como <b>Novo / sem contato</b> e a equipe vê na hora.</div>
+      <div id="nlErro" class="aviso aviso-erro hide"></div>`,
+    pe:`<button class="btn" id="nlNao">Cancelar</button><button class="btn btn-primary" id="nlSim">Adicionar lead</button>`});
+  el("nlNao").onclick=fechar;
+  const erro=t=>{ const e=el("nlErro"); e.textContent=t; e.classList.remove("hide"); };
+  el("nlSim").onclick=async()=>{
+    const nome=el("nlNome").value.replace(/\s+/g," ").trim().toUpperCase(), cpf=soDig(el("nlCpf").value), tel=soDig(el("nlTel").value);
+    if(nome.length<3) return erro("Informe o nome do cliente.");
+    if(!cpfValido(cpf)) return erro("CPF inválido. Confira os 11 números.");
+    if(tel.length<10||tel.length>13) return erro("Telefone inválido. Informe com DDD.");
+    const loteId=(el("nlLote").value.trim()||hoje()).replace(/[\/\\#\[\]*?:]/g,"-");
+    const aut=el("nlAut").value?new Date(el("nlAut").value):null;
+    const zap=el("nlZap").value;
+    const lead={
+      nome, cpf, telefone:tel,
+      nascimento:el("nlNasc").value?paraISO(el("nlNasc").value):null,
+      matricula:el("nlMat").value.trim(),
+      prazo:parseInt(soDig(el("nlPrazo").value))||null,
+      parcela:numBR(el("nlParc").value), valorLiberado:numBR(el("nlVal").value),
+      validoAte:aut&&!isNaN(aut)?new Date(aut.getTime()+HORAS_VALIDADE*3600000).toISOString():null,
+      whatsapp:zap===""?null:zap==="1",
+      origem:el("nlOrigem").value.replace(/\s+/g," ").trim(),
+      manual:true
+    };
+    const bancos=el("nlBancos").value.split(/[,;]+/).map(x=>x.trim()).filter(Boolean);
+    if(bancos.length) lead.bancosProv=bancos;
+    if(!lead.origem) delete lead.origem;
+    el("nlSim").disabled=true;
+    try{
+      const ref=doc(db,"lotes",loteId,"leads",cpf);
+      if((await getDoc(ref)).exists()){ el("nlSim").disabled=false; return erro("Esse CPF já está no lote "+loteId+". Procure por ele na lista."); }
+      await setDoc(ref,{...lead,status:"NOVO",obs:"",banco:"",respUid:null,respNome:null,
+        historico:[],criadoEm:serverTimestamp(),atualizadoEm:null});
+      const lref=doc(db,"lotes",loteId), ls=await getDoc(lref);
+      await setDoc(lref,{nome:loteId,data:loteId,total:(ls.exists()&&ls.data().total||0)+1,
+        criadoEm:ls.exists()&&ls.data().criadoEm||serverTimestamp(),criadoPor:S.perfil.nome||S.user.email,arquivo:"cadastro manual"},{merge:true});
+      const mm=/^(\d{4}-\d{2})-\d{2}/.exec(loteId); if(mm) S.mes=mm[1]; S.loteAtual="";
+      fechar(); toast("Lead adicionado. A equipe já vê.");
+      if(typeof recarregaLeads==="function") recarregaLeads();
+    }catch(err){ el("nlSim").disabled=false; erro("Não consegui adicionar: "+msgErro(err)); }
+  };
+}
+el("btnNovoLead").onclick=novoLeadManual;
+el("btnNovoLead2").onclick=novoLeadManual;
 
 /* ===================== BANCOS PROVÁVEIS ===================== */
 /* "Petra (UY3)" e "PETRA" viram a mesma chave */

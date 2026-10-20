@@ -1073,13 +1073,10 @@ function meusLeads(){ return S.pode.foco?S.leads.filter(l=>l.respUid===S.user.ui
 el("fBusca").oninput=e=>{S.filtro.busca=norm(e.target.value);S.pag=1;pintar();};
 el("fPorPag").onchange=e=>{S.porPag=+e.target.value;S.pag=1;pintar();};
 
-function filtrados(){
+/* filtros "de pesquisa" (busca, responsável, banco). Os cards de cima contam em cima deles,
+   mas não aplicam o filtro do próprio card (status/quente/esfriando) */
+function passaPesquisa(l){
   const f=S.filtro;
-  let r=baseLeads().filter(l=>{
-    if(S.pode.foco&&!f.status&&!f.busca&&["VENDA","REPROVADO"].includes(l.status||"NOVO")) return false;
-    if(f.status&&(l.status||"NOVO")!==f.status) return false;
-    if(f.marca==="quente"&&!QUENTES.has(l.id)) return false;
-    if(f.marca==="parado"&&paradoHa(l)===null) return false;
     if(f.resp==="__meus"&&l.respUid!==S.user.uid) return false;
     if(f.resp==="__livres"&&l.respUid) return false;
     if(f.resp&&!f.resp.startsWith("__")&&l.respUid!==f.resp) return false;
@@ -1093,6 +1090,16 @@ function filtrados(){
       if(!alvo.includes(f.busca)&&!alvo.includes(soDig(f.busca)||"\u0000")) return false;
     }
     return true;
+}
+function baseCards(){ return baseLeads().filter(passaPesquisa); }
+function filtrados(){
+  const f=S.filtro;
+  let r=baseLeads().filter(l=>{
+    if(S.pode.foco&&!f.status&&!f.busca&&["VENDA","REPROVADO"].includes(l.status||"NOVO")) return false;
+    if(f.status&&(l.status||"NOVO")!==f.status) return false;
+    if(f.marca==="quente"&&!QUENTES.has(l.id)) return false;
+    if(f.marca==="parado"&&paradoHa(l)===null) return false;
+    return passaPesquisa(l);
   });
   const o=S.ordem;
   r.sort((a,b)=>{
@@ -1468,10 +1475,10 @@ function contagens(lista){
   return {c,vendido,total:lista.length};
 }
 function pintarKpis(){
-  const base=baseLeads(), foco=!!S.pode.foco;
+  const base=baseCards(), foco=!!S.pode.foco;
   const {c,vendido,total}=contagens(base);
   const trab=total-c.NOVO, conv=trab?(c.VENDA/trab*100):0;
-  const quentes=QUENTES.size;
+  const quentes=base.filter(l=>QUENTES.has(l.id)).length;
   const esfriando=base.filter(l=>paradoHa(l)!==null).length;
   const m=S.filtro.marca, st=S.filtro.status;
   const pc=s=>foco?"":(total?((c[s]/total)*100).toFixed(1).replace(".",",")+"% do lote":"—");

@@ -1827,7 +1827,7 @@ el("btnImportar").onclick=async()=>{
   const loteId=(el("loteNome").value.trim()||hoje()).replace(/[\/\\#\[\]*?:]/g,"-");
   const brutos=S.imp.linhas.map(montaLead).filter(l=>l.nome&&(l.cpf||l.telefone));
   if(!brutos.length){ toast("Nenhuma linha válida (precisa ter nome e CPF ou telefone)."); return; }
-  const vistos=new Set(), leads=[];
+  const vistos=new Set(); let leads=[];
   for(const l of brutos){
     const id=(l.cpf||soDig(l.telefone)).padStart(3,"0");
     if(vistos.has(id)) continue;
@@ -1837,6 +1837,30 @@ el("btnImportar").onclick=async()=>{
   el("btnImportar").disabled=true; show("cxProg",true);
   const prog=(f,t,msg)=>{ el("progBar").style.width=(t?f/t*100:0)+"%"; el("progTxt").textContent=msg; };
   try{
+    /* duplicidade entre lotes: se o CPF (ou telefone) já foi importado em OUTRO lote, não entra de novo */
+    prog(0,1,"Verificando duplicados nos outros lotes…");
+    const emOutros=new Map();
+    const lotesSnap=await getDocs(collection(db,"lotes"));
+    for(const ld of lotesSnap.docs){
+      if(ld.id===loteId) continue;
+      (await getDocs(collection(db,"lotes",ld.id,"leads"))).forEach(d=>{
+        if(!emOutros.has(d.id)) emOutros.set(d.id,ld.id);
+      });
+    }
+    const jaEmOutros=[];
+    leads=leads.filter(l=>{
+      const lt=emOutros.get(l.id);
+      if(lt){ jaEmOutros.push({nome:l.nome,cpf:l.cpf,lote:lt}); return false; }
+      return true;
+    });
+    if(!leads.length){
+      show("cxProg",false); el("btnImportar").disabled=false;
+      modal({titulo:"Nada para importar",
+        corpo:`<div class="aviso">Todos os ${fmtNum(jaEmOutros.length)} lead(s) dessa planilha já existem em outros lotes. Nada foi gravado.</div>
+          <div style="margin-top:10px;max-height:240px;overflow:auto;font-size:13px">${jaEmOutros.map(x=>`${esc(x.nome)} · ${x.cpf?fmtCPF(x.cpf):"sem CPF"} · lote ${esc(x.lote)}`).join("<br>")}</div>`,
+        pe:`<button class="btn btn-primary" onclick="document.getElementById('modalHost').innerHTML=''">Fechar</button>`});
+      return;
+    }
     prog(0,1,"Verificando o que já existe nesse lote…");
     const atuais=new Map();
     (await getDocs(collection(db,"lotes",loteId,"leads"))).forEach(d=>atuais.set(d.id,d.data()));
@@ -1864,8 +1888,10 @@ el("btnImportar").onclick=async()=>{
       corpo:`<div class="aviso aviso-ok">O lote <b>${esc(loteId)}</b> está no ar para a equipe.</div>
         <dl class="dl"><dt>Leads novos</dt><dd>${fmtNum(novos)}</dd>
         <dt>Já existiam</dt><dd>${fmtNum(mantidos)} (situação, banco e responsável preservados)</dd>
-        ${dup?`<dt>Duplicados</dt><dd>${fmtNum(dup)} linha(s) ignorada(s)</dd>`:""}
-        <dt>Total no lote</dt><dd><b>${fmtNum(totalFinal)}</b></dd></dl>`,
+        ${dup?`<dt>Repetidos na planilha</dt><dd>${fmtNum(dup)} linha(s) ignorada(s)</dd>`:""}
+        ${jaEmOutros.length?`<dt>Já estavam em outros lotes</dt><dd>${fmtNum(jaEmOutros.length)} lead(s) ignorado(s), não foram gravados de novo</dd>`:""}
+        <dt>Total no lote</dt><dd><b>${fmtNum(totalFinal)}</b></dd></dl>
+        ${jaEmOutros.length?`<div class="aviso" style="margin-top:12px"><b>Ignorados por já existirem em outro lote:</b><div style="max-height:200px;overflow:auto;font-size:13px;margin-top:6px">${jaEmOutros.map(x=>`${esc(x.nome)} · ${x.cpf?fmtCPF(x.cpf):"sem CPF"} · lote ${esc(x.lote)}`).join("<br>")}</div></div>`:""}`,
       pe:`<button class="btn btn-primary" onclick="document.getElementById('modalHost').innerHTML=''">Fechar</button>`});
   }catch(err){ toast("Erro na importação: "+msgErro(err)); el("btnImportar").disabled=false; }
 };

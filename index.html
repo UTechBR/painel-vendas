@@ -47,6 +47,27 @@
   .login-card .logo-mdv{height:40px;margin:0 auto 18px}
   .login-card h1{font-size:19px;margin:0 0 4px;letter-spacing:-.2px;text-align:center}
   .login-card p.sub{margin:0 0 22px;color:var(--text-2);font-size:13px;text-align:center}
+
+  /* ---------- Login interativo ---------- */
+  #telaLogin{position:relative;overflow:hidden;gap:28px;grid-template-columns:minmax(0,1fr);
+    background:radial-gradient(900px 520px at 18% 12%,#1d2c47 0%,#111a2b 55%,#0b111c 100%)}
+  #loginFx{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+  #telaLogin .login-card{position:relative;z-index:2;justify-self:center;background:rgba(255,255,255,.97)}
+  .login-hero{position:relative;z-index:1;display:none;align-self:end;padding:0 0 7vh 6vw;color:#e8edf5;pointer-events:none}
+  .login-hero .kick{font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;color:#f2a05a;font-weight:700;margin-bottom:10px}
+  .login-hero h2{margin:0 0 10px;font-size:clamp(28px,3.6vw,46px);line-height:1.04;letter-spacing:-1px;font-weight:800;color:#fff}
+  .login-hero h2 em{font-style:normal;background:linear-gradient(90deg,#f2821d,#fbb040);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .login-hero p{margin:0 0 16px;max-width:420px;color:#9fb0c8;font-size:15px;line-height:1.5}
+  .login-hero .leg{display:flex;gap:18px;align-items:center;font-size:12.5px;color:#9fb0c8;flex-wrap:wrap}
+  .login-hero .leg i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .login-hero .leg .q{background:#ff8a1f;box-shadow:0 0 10px #ff8a1f}
+  .login-hero .leg .f{background:#5b7aa8}
+  .login-hero .dica-fx{margin-top:18px;font-size:11px;color:#4d5d78;letter-spacing:.04em}
+  @media(min-width:960px){
+    #telaLogin{grid-template-columns:minmax(0,1.25fr) minmax(380px,460px);padding:24px 6vw 24px 0}
+    .login-hero{display:block}
+    #telaLogin .login-card{justify-self:end;width:100%}
+  }
   .campo{margin-bottom:14px}
   .campo label{display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px}
   .campo input,.campo select,.campo textarea{width:100%;padding:10px 12px;border:1px solid var(--border-strong);
@@ -366,6 +387,14 @@ window.HORAS_VALIDADE = 24;
 
 <!-- LOGIN -->
 <div id="telaLogin" class="hide">
+  <canvas id="loginFx" aria-hidden="true"></canvas>
+  <div class="login-hero">
+    <div class="kick">Leads Manuais · MDV</div>
+    <h2>Seus leads<br><em>estão aqui.</em></h2>
+    <p>Entre, escolha um cliente e comece pelo mais quente.</p>
+    <div class="leg"><span><i class="q"></i>quente</span><span><i class="f"></i>esfriando</span></div>
+    <div class="dica-fx">passe o mouse e clique nos pontos</div>
+  </div>
   <div class="login-card">
     <img class="logo-mdv" id="logoLogin" alt="MDV">
     <h1>Leads Manuais</h1>
@@ -2332,6 +2361,195 @@ el("btnCriarUsr").onclick=async()=>{
   finally{ if(seg) deleteApp(seg).catch(()=>{}); el("btnCriarUsr").disabled=false; }
 };
 
+</script>
+
+<script>
+/* tela de login: leads viram pontos. O mouse esquenta, o tempo esfria, o clique fecha venda */
+(function(){
+  var tela=document.getElementById("telaLogin"), cv=document.getElementById("loginFx");
+  if(!tela||!cv||!cv.getContext) return;
+  var ctx=cv.getContext("2d"), reduz=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var W=0,H=0,dpr=1,P=[],N=0,anel=[],textos=[],t0=performance.now(),rodando=false,fase="forma",faseDesde=0,vendas=0,mouse={x:-999,y:-999,on:false};
+  var FRIO=[91,122,168], QUENTE=[255,138,31];
+  var alvoCentro={x:0,y:0,tam:120};
+
+  function rnd(a,b){return a+Math.random()*(b-a);}
+  function mix(a,b,t){return a+(b-a)*t;}
+
+  function medir(){
+    var r=tela.getBoundingClientRect();
+    dpr=Math.min(window.devicePixelRatio||1,2);
+    W=Math.max(1,r.width); H=Math.max(1,r.height);
+    cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    var hero=tela.querySelector(".login-hero");
+    var largo=W>=960&&hero&&hero.offsetParent!==null;
+    if(largo){
+      var hr=hero.getBoundingClientRect();
+      alvoCentro.x=(hr.left-r.left)+Math.min(hr.width,640)*0.5+W*0.03;
+      alvoCentro.tam=Math.min(W*0.2,H*0.3,190);
+      alvoCentro.y=Math.max(alvoCentro.tam*0.7+30,(hr.top-r.top)-alvoCentro.tam*0.55-20);
+    }else{
+      alvoCentro.x=W/2; alvoCentro.tam=Math.min(W*0.28,92); alvoCentro.y=Math.max(alvoCentro.tam*0.7+16,H*0.1);
+    }
+    var alvo=(W<700)?150:(W<1100?230:320);
+    if(N!==alvo){ N=alvo; criar(); }
+    montarAlvos();
+  }
+
+  function criar(){
+    P=[];
+    for(var i=0;i<N;i++){
+      P.push({x:rnd(0,W),y:rnd(0,H),vx:0,vy:0,t:rnd(0,.25),ph:rnd(0,6.28),sp:rnd(.15,.45),tx:null,ty:null});
+    }
+  }
+
+  /* pontos do desenho "MDV" */
+  function montarAlvos(){
+    var tam=alvoCentro.tam, off=document.createElement("canvas"), w=Math.round(tam*3.1), h=Math.round(tam*1.25);
+    off.width=w; off.height=h; var o=off.getContext("2d");
+    o.fillStyle="#fff"; o.textAlign="center"; o.textBaseline="middle";
+    o.font="900 "+Math.round(tam*1.05)+"px Inter,Arial Black,Arial,sans-serif";
+    o.fillText("MDV",w/2,h/2+tam*0.04);
+    var d=o.getImageData(0,0,w,h).data, passo=Math.max(5,Math.round(tam/17)), pts=[];
+    for(var tries=0;tries<12;tries++){
+      pts=[];
+      for(var y=0;y<h;y+=passo) for(var x=0;x<w;x+=passo){ if(d[(y*w+x)*4+3]>128) pts.push([x-w/2,y-h/2]); }
+      if(pts.length<=N*0.92) break; passo+=1;
+    }
+    for(var i=pts.length-1;i>0;i--){var j=(Math.random()*(i+1))|0,tmp=pts[i];pts[i]=pts[j];pts[j]=tmp;}
+    for(i=0;i<P.length;i++){
+      if(i<pts.length){ P[i].tx=alvoCentro.x+pts[i][0]; P[i].ty=alvoCentro.y+pts[i][1]; } else { P[i].tx=null; P[i].ty=null; }
+    }
+  }
+
+  function cor(t,a){
+    var r=Math.round(mix(FRIO[0],QUENTE[0],t)),g=Math.round(mix(FRIO[1],QUENTE[1],t)),b=Math.round(mix(FRIO[2],QUENTE[2],t));
+    return "rgba("+r+","+g+","+b+","+a+")";
+  }
+
+  function passo(agora){
+    var tempo=(agora-t0)/1000;
+    /* alterna entre formar a marca e soltar os leads */
+    var dur=(fase==="forma")?6.5:(fase==="livre"?8:0.9);
+    if(tempo-faseDesde>dur){
+      if(fase==="forma") fase="livre"; else fase="forma";
+      faseDesde=tempo;
+    }
+    var i,p,dx,dy,d,f;
+    for(i=0;i<P.length;i++){
+      p=P[i];
+      var formando=(fase==="forma"||fase==="lancar"&&false)&&p.tx!==null;
+      if(fase==="lancar"){
+        p.vx*=0.985; p.vy*=0.985; p.t=Math.min(1,p.t+0.02);
+      }else if(formando){
+        p.vx+=(p.tx-p.x)*0.045; p.vy+=(p.ty-p.y)*0.045;
+        p.vx*=0.80; p.vy*=0.80;
+        var onda=0.8+0.2*Math.sin(tempo*2.4-p.tx*0.03);
+        p.t+=(onda-p.t)*0.05;
+      }else{
+        p.vx+=Math.cos(tempo*p.sp+p.ph)*0.012; p.vy+=Math.sin(tempo*p.sp*1.3+p.ph)*0.012;
+        p.vx*=0.985; p.vy*=0.985;
+        p.t*=0.9955; /* esfriando */
+      }
+      if(mouse.on){
+        dx=mouse.x-p.x; dy=mouse.y-p.y; d=Math.sqrt(dx*dx+dy*dy);
+        if(d<150){
+          f=1-d/150;
+          p.t=Math.min(1,p.t+f*0.09);
+          if(formando){ p.vx-=dx/(d+1)*f*2.2; p.vy-=dy/(d+1)*f*2.2; }
+          else if(fase==="livre"){ p.vx+=dx/(d+1)*f*0.07-dy/(d+1)*f*0.05; p.vy+=dy/(d+1)*f*0.07+dx/(d+1)*f*0.05; }
+        }
+      }
+      p.x+=p.vx; p.y+=p.vy;
+      if(fase!=="forma"||p.tx===null){
+        if(p.x<-20)p.x=W+20; else if(p.x>W+20)p.x=-20;
+        if(p.y<-20)p.y=H+20; else if(p.y>H+20)p.y=-20;
+      }
+    }
+  }
+
+  function desenhar(){
+    ctx.clearRect(0,0,W,H);
+    ctx.globalCompositeOperation="lighter";
+    var i,j,p,q,quentes=[];
+    for(i=0;i<P.length;i++){
+      p=P[i];
+      var r=1.5+p.t*2.1;
+      if(p.t>0.45){
+        ctx.fillStyle=cor(p.t,0.14*p.t); ctx.beginPath(); ctx.arc(p.x,p.y,r*3.2,0,6.283); ctx.fill();
+        quentes.push(p);
+      }
+      ctx.fillStyle=cor(p.t,0.35+0.65*p.t); ctx.beginPath(); ctx.arc(p.x,p.y,r,0,6.283); ctx.fill();
+    }
+    /* fios entre leads quentes próximos */
+    ctx.lineWidth=1;
+    for(i=0;fase!=="forma"&&i<quentes.length;i++){
+      for(j=i+1;j<quentes.length;j++){
+        p=quentes[i]; q=quentes[j];
+        var dx=p.x-q.x, dy=p.y-q.y, dd=dx*dx+dy*dy;
+        if(dd<3600){ ctx.strokeStyle="rgba(255,150,60,"+(0.22*(1-dd/3600)).toFixed(3)+")"; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke(); }
+      }
+    }
+    ctx.globalCompositeOperation="source-over";
+    /* ondas de venda */
+    for(i=anel.length-1;i>=0;i--){
+      var a=anel[i]; a.r+=5; a.v-=0.018;
+      if(a.v<=0){ anel.splice(i,1); continue; }
+      ctx.strokeStyle="rgba(251,176,64,"+a.v.toFixed(3)+")"; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(a.x,a.y,a.r,0,6.283); ctx.stroke();
+    }
+    for(i=textos.length-1;i>=0;i--){
+      var tx=textos[i]; tx.y-=0.8; tx.v-=0.011;
+      if(tx.v<=0){ textos.splice(i,1); continue; }
+      ctx.globalAlpha=Math.min(1,tx.v*1.6); ctx.fillStyle="#fbb040"; ctx.font="700 15px Inter,Arial,sans-serif"; ctx.textAlign="center";
+      ctx.fillText(tx.s,tx.x,tx.y); ctx.globalAlpha=1;
+    }
+  }
+
+  function quadro(agora){
+    if(!rodando) return;
+    if(tela.classList.contains("hide")||document.hidden){ rodando=false; return; }
+    passo(agora); desenhar();
+    requestAnimationFrame(quadro);
+  }
+  function iniciar(){
+    if(rodando) return;
+    medir(); rodando=true; t0=performance.now(); faseDesde=0; fase="forma";
+    requestAnimationFrame(quadro);
+  }
+
+  function pos(e){ var r=tela.getBoundingClientRect(); return {x:e.clientX-r.left,y:e.clientY-r.top}; }
+  if(!reduz){
+    tela.addEventListener("pointermove",function(e){ var m=pos(e); mouse.x=m.x; mouse.y=m.y; mouse.on=true; });
+    tela.addEventListener("pointerleave",function(){ mouse.on=false; });
+    tela.addEventListener("pointerdown",function(e){
+      if(e.target.closest&&e.target.closest(".login-card")) return;
+      var m=pos(e); mouse.x=m.x; mouse.y=m.y; mouse.on=true;
+      anel.push({x:m.x,y:m.y,r:8,v:0.9});
+      var valor=Math.round(rnd(2000,19000)/10)*10;
+      textos.push({x:m.x,y:m.y-10,v:1.1,s:"+ R$ "+valor.toLocaleString("pt-BR")});
+      for(var i=0;i<P.length;i++){
+        var dx=P[i].x-m.x, dy=P[i].y-m.y, d=Math.sqrt(dx*dx+dy*dy);
+        if(d<190){ P[i].t=1; P[i].vx+=dx/(d+1)*(1-d/190)*5; P[i].vy+=dy/(d+1)*(1-d/190)*5; }
+      }
+    });
+    var fm=document.getElementById("formLogin");
+    if(fm) fm.addEventListener("submit",function(){
+      fase="lancar"; faseDesde=(performance.now()-t0)/1000;
+      for(var i=0;i<P.length;i++){
+        var dx=P[i].x-alvoCentro.x, dy=P[i].y-alvoCentro.y, d=Math.sqrt(dx*dx+dy*dy)+1;
+        P[i].vx=dx/d*rnd(3,9); P[i].vy=dy/d*rnd(3,9); P[i].t=1;
+      }
+    });
+  }
+  var rt; window.addEventListener("resize",function(){ clearTimeout(rt); rt=setTimeout(function(){ if(!tela.classList.contains("hide")) medir(); },150); });
+  document.addEventListener("visibilitychange",function(){ if(!document.hidden&&!tela.classList.contains("hide")) iniciar(); });
+  new MutationObserver(function(){ if(!tela.classList.contains("hide")){ if(reduz){ medir(); estatico(); } else iniciar(); } else rodando=false; })
+    .observe(tela,{attributes:true,attributeFilter:["class"]});
+  function estatico(){ for(var i=0;i<P.length;i++){ var p=P[i]; if(p.tx!==null){p.x=p.tx;p.y=p.ty;p.t=.7;} } desenhar(); }
+  if(!tela.classList.contains("hide")){ if(reduz){ medir(); estatico(); } else iniciar(); }
+})();
 </script>
 </body>
 </html>

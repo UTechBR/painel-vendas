@@ -585,7 +585,8 @@ window.HORAS_VALIDADE = 24;
       <div class="cx">
         <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;justify-content:space-between">
           <h2 style="margin:0">Importar planilha de leads</h2>
-          <button class="btn btn-sm" id="btnNovoLead2">➕ Adicionar um lead manualmente</button></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm" id="btnLimpaDup" title="Procura o mesmo CPF em lotes diferentes do mês">🧹 Limpar duplicados do mês</button>
+          <button class="btn btn-sm" id="btnNovoLead2">➕ Adicionar um lead manualmente</button></div></div>
         <p class="d">Aceita <b>.csv</b>, <b>.xlsx</b> e <b>.xls</b>. Os leads ficam visíveis para toda a equipe na hora.</p>
         <details style="margin:-4px 0 14px;font-size:12.5px;color:var(--text-2)">
           <summary style="cursor:pointer;font-weight:600">Layout esperado da planilha</summary>
@@ -1879,9 +1880,12 @@ el("btnImportar").onclick=async()=>{
     prog(0,1,"Verificando o que já existe nesse lote…");
     const atuais=new Map();
     (await getDocs(collection(db,"lotes",loteId,"leads"))).forEach(d=>atuais.set(d.id,d.data()));
+    prog(0,1,"Conferindo se algum cliente já está em outro lote do mês…");
+    const fora=await copiasNoMes(loteId), pulados=[];
     let lote=writeBatch(db),n=0,novos=0,mantidos=0;
     for(let i=0;i<leads.length;i++){
       const l=leads[i], ja=atuais.get(l.id), dados={...l};
+      if(!ja&&fora.has(l.id)){ pulados.push({nome:l.nome,...fora.get(l.id)}); if(i===leads.length-1&&n%400!==0){ await lote.commit(); lote=writeBatch(db); } continue; }
       delete dados.id;
       if(dados.bancosProv===null) delete dados.bancosProv;
       if(!dados.origem) delete dados.origem;
@@ -1894,21 +1898,88 @@ el("btnImportar").onclick=async()=>{
         prog(i+1,leads.length,`Enviando… ${fmtNum(i+1)} de ${fmtNum(leads.length)}`);
       }
     }
-    const totalFinal=new Set([...atuais.keys(),...leads.map(l=>l.id)]).size;
+    const totalFinal=new Set([...atuais.keys(),...leads.filter(l=>atuais.has(l.id)||!fora.has(l.id)).map(l=>l.id)]).size;
     await setDoc(doc(db,"lotes",loteId),{nome:loteId,data:loteId,total:totalFinal,
       criadoEm:serverTimestamp(),criadoPor:S.perfil.nome||S.user.email,arquivo:S.imp.arquivo},{merge:true});
     prog(1,1,"Pronto!");
     show("cxMapa",false); el("arquivo").value=""; S.imp=null; S.loteAtual=""; { const mm=/^(\d{4}-\d{2})-\d{2}/.exec(loteId); if(mm) S.mes=mm[1]; }
     modal({titulo:"Importação concluída",
       corpo:`<div class="aviso aviso-ok">O lote <b>${esc(loteId)}</b> está no ar para a equipe.</div>
+        ${pulados.length?`<div style="max-height:150px;overflow:auto;font-size:12.5px;margin:8px 0;color:var(--text-2)">${pulados.slice(0,15).map(x=>`${esc(x.nome)} · lote ${esc(x.lote)} (${STATUS[x.status]?STATUS[x.status].rot:esc(x.status)})`).join("<br>")}${pulados.length>15?`<br>…e mais ${pulados.length-15}`:""}</div>`:""}
         <dl class="dl"><dt>Leads novos</dt><dd>${fmtNum(novos)}</dd>
         <dt>Já existiam</dt><dd>${fmtNum(mantidos)} (situação, banco e responsável preservados)</dd>
-        ${dup?`<dt>Duplicados</dt><dd>${fmtNum(dup)} linha(s) ignorada(s)</dd>`:""}
+        ${dup?`<dt>Repetidos no arquivo</dt><dd>${fmtNum(dup)} linha(s) ignorada(s)</dd>`:""}
+        ${pulados.length?`<dt>Já em outro lote</dt><dd><b>${fmtNum(pulados.length)}</b> cliente(s) não foram duplicados: já estavam em outro lote deste mês e ficaram como estão.</dd>`:""}
         <dt>Total no lote</dt><dd><b>${fmtNum(totalFinal)}</b></dd></dl>`,
       pe:`<button class="btn btn-primary" onclick="document.getElementById('modalHost').innerHTML=''">Fechar</button>`});
   }catch(err){ toast("Erro na importação: "+msgErro(err)); el("btnImportar").disabled=false; }
 };
 
+
+
+/* ===================== DUPLICADOS ===================== */
+/* o mesmo CPF não pode existir em dois lotes do mesmo mês */
+async function copiasNoMes(loteId){
+  const mes=mesDoLote(S.lotes.find(l=>l.id===loteId)||{id:loteId});
+  const mapa=new Map();
+  for(const lt of S.lotes){
+    if(lt.id===loteId||mesDoLote(lt)!==mes) continue;
+    (await getDocs(collection(db,"lotes",lt.id,"leads"))).forEach(d=>{
+      if(!mapa.has(d.id)) mapa.set(d.id,{lote:lt.id,status:d.data().status||"NOVO"});
+    });
+  }
+  return mapa;
+}
+const PESO_ST={VENDA:5,SIMULACAO:4,CONTATO:3,REPROVADO:2,NOVO:1};
+function mesclaDuplicados(){
+  const por=new Map();
+  S.leads.forEach(l=>{ const k=l._cpf; if(!por.has(k)) por.set(k,[]); por.get(k).push(l); });
+  const grupos=[];
+  por.forEach(arr=>{ if(arr.length>1){
+    arr.sort((a,b)=>(PESO_ST[b.status||"NOVO"]-PESO_ST[a.status||"NOVO"])
+      ||((b.respUid?1:0)-(a.respUid?1:0))
+      ||String(b.atualizadoEm&&b.atualizadoEm.toDate?b.atualizadoEm.toDate().toISOString():"").localeCompare(String(a.atualizadoEm&&a.atualizadoEm.toDate?a.atualizadoEm.toDate().toISOString():""))
+      ||String(a._lote).localeCompare(String(b._lote)));
+    grupos.push(arr);
+  }});
+  return grupos;
+}
+function limparDuplicados(){
+  if(!S.pode.importa) return;
+  if(S.loteAtual){ toast("Escolha \"Todos os lotes do mês\" na lista de leads antes de limpar."); return; }
+  const grupos=mesclaDuplicados(), sobras=grupos.reduce((n,g)=>n+g.length-1,0);
+  if(!grupos.length){ toast("Nenhum cliente duplicado em "+rotMes(S.mes)+"."); return; }
+  const fechar=modal({titulo:"Limpar duplicados · "+rotMes(S.mes), largura:"620px",
+    corpo:`<div class="aviso aviso-info"><b>${fmtNum(grupos.length)}</b> cliente(s) aparecem em mais de um lote, somando <b>${fmtNum(sobras)}</b> cópia(s) a mais.
+        Em cada cliente fica a cópia mais adiantada (venda, simulação, contato...) e as outras são apagadas. A origem é preservada.</div>
+      <div style="max-height:260px;overflow:auto;font-size:12.5px;margin-top:10px">
+      ${grupos.slice(0,40).map(g=>`<div style="padding:6px 0;border-bottom:1px solid var(--border)"><b>${esc(g[0].nome)}</b> · ${fmtCPF(g[0]._cpf)}<br>
+        <span style="color:var(--text-2)">fica: lote ${esc(g[0]._lote)} (${STATUS[g[0].status||"NOVO"].rot}) · apaga: ${g.slice(1).map(x=>"lote "+esc(x._lote)+" ("+STATUS[x.status||"NOVO"].rot+")").join(", ")}</span></div>`).join("")}
+      ${grupos.length>40?`<div style="padding:6px 0;color:var(--text-3)">…e mais ${grupos.length-40}</div>`:""}</div>
+      <div id="ldErro" class="aviso aviso-erro hide"></div>`,
+    pe:`<button class="btn" id="ldNao">Cancelar</button><button class="btn btn-danger" id="ldSim">Apagar ${fmtNum(sobras)} cópia(s)</button>`});
+  el("ldNao").onclick=fechar;
+  el("ldSim").onclick=async()=>{
+    el("ldSim").disabled=true; el("ldSim").textContent="Apagando…";
+    try{
+      const apagadosPorLote=new Map();
+      for(const g of grupos){
+        const fica=g[0], sem=g.slice(1);
+        const org=!fica.origem?(sem.find(x=>x.origem)||{}).origem:"";
+        if(org) await updateDoc(doc(db,"lotes",fica._lote,"leads",fica._cpf),{origem:org});
+        for(const x of sem){
+          await deleteDoc(doc(db,"lotes",x._lote,"leads",x._cpf));
+          apagadosPorLote.set(x._lote,(apagadosPorLote.get(x._lote)||0)+1);
+        }
+      }
+      for(const [lt,n] of apagadosPorLote){
+        const info=S.lotes.find(l=>l.id===lt);
+        await setDoc(doc(db,"lotes",lt),{total:Math.max(0,(info&&info.total||0)-n)},{merge:true});
+      }
+      fechar(); toast(fmtNum(sobras)+" cópia(s) apagada(s).");
+    }catch(err){ el("ldSim").disabled=false; el("ldSim").textContent="Tentar de novo"; const e=el("ldErro"); e.textContent="Não consegui apagar: "+msgErro(err); e.classList.remove("hide"); }
+  };
+}
 
 /* ===================== LEAD MANUAL ===================== */
 function cpfValido(c){
@@ -1969,6 +2040,8 @@ function novoLeadManual(){
     try{
       const ref=doc(db,"lotes",loteId,"leads",cpf);
       if((await getDoc(ref)).exists()){ el("nlSim").disabled=false; return erro("Esse CPF já está no lote "+loteId+". Procure por ele na lista."); }
+      const fora=await copiasNoMes(loteId);
+      if(fora.has(cpf)){ el("nlSim").disabled=false; const o=fora.get(cpf); return erro("Esse cliente já está no lote "+o.lote+" ("+(STATUS[o.status]?STATUS[o.status].rot:o.status)+"). Procure por ele na lista."); }
       await setDoc(ref,{...lead,status:"NOVO",obs:"",banco:"",respUid:null,respNome:null,
         historico:[],criadoEm:serverTimestamp(),atualizadoEm:null});
       const lref=doc(db,"lotes",loteId), ls=await getDoc(lref);
@@ -1982,6 +2055,7 @@ function novoLeadManual(){
 }
 el("btnNovoLead").onclick=novoLeadManual;
 el("btnNovoLead2").onclick=novoLeadManual;
+el("btnLimpaDup").onclick=limparDuplicados;
 
 /* ===================== BANCOS PROVÁVEIS ===================== */
 /* "Petra (UY3)" e "PETRA" viram a mesma chave */

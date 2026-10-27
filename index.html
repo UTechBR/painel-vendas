@@ -669,7 +669,7 @@ window.HORAS_VALIDADE = 24;
   </main>
 
   <footer class="rodape">
-    Sistema desenvolvido por <b>Alberson Junior</b> · versão 27/10 16h10
+    Sistema desenvolvido por <b>Alberson Junior</b> · versão 27/10 16h40
   </footer>
 </div>
 
@@ -1212,7 +1212,7 @@ function botoesContato(l){
 function ehCarrinho(l){ return /carrinho/.test(norm(l&&l.origem||"")); }
 function carrinhoAberto(l){ const st=l.status||"NOVO"; return ehCarrinho(l)&&st!=="VENDA"&&st!=="REPROVADO"; }
 function selos(l,semOrigem){
-  let s=ehCarrinho(l)?`<span class="selo-carrinho" title="Cliente que abandonou o carrinho no Vende Aí. Ligue primeiro!">🛒 CARRINHO ABANDONADO</span>`:"";
+  let s=ehCarrinho(l)&&!semOrigem?`<span class="selo-carrinho" title="Cliente que abandonou o carrinho no Vende Aí. Ligue primeiro!">🛒 CARRINHO ABANDONADO</span>`:"";
   s+=QUENTES.has(l.id)?`<span class="selo-quente">🔥 quente</span>`:"";
   if(l.origem&&!semOrigem&&!ehCarrinho(l)) s+=`<span class="selo-origem" title="Origem do lead">🛒 ${esc(String(l.origem).toLowerCase())}</span>`;
   const ph=paradoHa(l);
@@ -1686,19 +1686,21 @@ el("tbodyLotes").onclick=async e=>{
 };
 
 /* ===================== EXPORTAR ===================== */
+/* texto que começa com = + - @ vira fórmula em planilha: neutraliza com apóstrofo */
+const blind=v=>{ v=(v??"").toString(); return /^[=+\-@\t\r]/.test(v)?"'"+v:v; };
 el("btnExportar").onclick=()=>{
   const lista=filtrados();
   if(!lista.length){ toast("Nada para exportar com esses filtros."); return; }
   const linhas=lista.map(l=>({
-    "NOME":l.nome||"", "CPF":soDig(l.cpf), "DATA NASCIMENTO":soData(l.nascimento), "IDADE":idade(l.nascimento)??"",
-    "MATRÍCULA":l.matricula||"", "PRAZO":l.prazo||"", "PARCELA":Number(l.parcela)||0,
+    "NOME":blind(l.nome||""), "CPF":soDig(l.cpf), "DATA NASCIMENTO":soData(l.nascimento), "IDADE":idade(l.nascimento)??"",
+    "MATRÍCULA":blind(l.matricula||""), "PRAZO":l.prazo||"", "PARCELA":Number(l.parcela)||0,
     "VALOR LIBERADO":Number(l.valorLiberado)||0, "TELEFONE":soDig(l.telefone),
     "POSSUI WHATSAPP":l.whatsapp?"SIM":"NÃO",
-    "ORIGEM":l.origem||"",
+    "ORIGEM":blind(l.origem||""),
     "PROVÁVEIS BANCOS COMPATÍVEIS":(provOrd(l)||[]).join(", "),
     "AUTORIZADO EM":soHora(autorizadoEm(l)), "VÁLIDO ATÉ":soHora(l.validoAte),
-    "SITUAÇÃO":STATUS[l.status||"NOVO"].rot, "BANCO":l.banco||"",
-    "RESPONSÁVEL":l.respNome||"", "OBSERVAÇÃO":l.obs||"", "ATUALIZADO EM":dataHora(l.atualizadoEm)
+    "SITUAÇÃO":STATUS[l.status||"NOVO"].rot, "BANCO":blind(l.banco||""),
+    "RESPONSÁVEL":blind(l.respNome||""), "OBSERVAÇÃO":blind(l.obs||""), "ATUALIZADO EM":dataHora(l.atualizadoEm)
   }));
   const ws=XLSX.utils.json_to_sheet(linhas);
   ws["!cols"]=[{wch:36},{wch:14},{wch:13},{wch:7},{wch:24},{wch:7},{wch:12},{wch:14},{wch:14},{wch:9},{wch:44},{wch:16},{wch:16},{wch:20},{wch:16},{wch:22},{wch:34},{wch:16}];
@@ -1712,13 +1714,13 @@ el("btnExportarVendas").onclick=()=>{
   if(!vendas.length){ toast("Nenhuma venda finalizada nesse lote ainda."); return; }
   vendas.sort((a,b)=>(Number(b.valorLiberado)||0)-(Number(a.valorLiberado)||0));
   const linhas=vendas.map(l=>({
-    "LOTE":l._lote||"", "NOME":l.nome||"", "CPF":soDig(l.cpf),
+    "LOTE":l._lote||"", "NOME":blind(l.nome||""), "CPF":soDig(l.cpf),
     "DATA NASCIMENTO":soData(l.nascimento), "IDADE":idade(l.nascimento)??"",
-    "TELEFONE":soDig(l.telefone), "MATRÍCULA":l.matricula||"",
-    "BANCO":l.banco||"", "PRAZO":l.prazo||"", "PARCELA":Number(l.parcela)||0,
+    "TELEFONE":soDig(l.telefone), "MATRÍCULA":blind(l.matricula||""),
+    "BANCO":blind(l.banco||""), "PRAZO":l.prazo||"", "PARCELA":Number(l.parcela)||0,
     "VALOR LIBERADO":Number(l.valorLiberado)||0,
-    "VENDEDOR":l.respNome||"", "DATA DA VENDA":fmtDataVenda(l)||"", "REGISTRADA NO SISTEMA EM":dataHora(l.atualizadoEm),
-    "AUTORIZADO EM":soHora(autorizadoEm(l)), "OBSERVAÇÃO":l.obs||""
+    "VENDEDOR":blind(l.respNome||""), "DATA DA VENDA":fmtDataVenda(l)||"", "REGISTRADA NO SISTEMA EM":dataHora(l.atualizadoEm),
+    "AUTORIZADO EM":soHora(autorizadoEm(l)), "OBSERVAÇÃO":blind(l.obs||"")
   }));
   const total=vendas.reduce((s,l)=>s+(Number(l.valorLiberado)||0),0);
   linhas.push({},{ "LOTE":"TOTAL", "NOME":`${vendas.length} venda(s)`, "VALOR LIBERADO":total });

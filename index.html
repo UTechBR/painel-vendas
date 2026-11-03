@@ -491,7 +491,7 @@ window.HORAS_VALIDADE = 24;
           <table>
             <thead>
               <tr>
-                <th>Cliente</th><th>Origem</th><th>Nascimento</th><th>Telefone</th><th>Autorizado</th>
+                <th>Cliente</th><th>Origem</th><th>Nascimento</th><th>Telefone</th><th>Data e hora da oferta</th>
                 <th>Prazo</th><th>Parcela</th><th>Liberado</th>
                 <th>Situação</th><th>Banco</th><th>Resp.</th><th>Obs.</th><th></th>
               </tr>
@@ -680,7 +680,7 @@ window.HORAS_VALIDADE = 24;
   </main>
 
   <footer class="rodape">
-    Sistema desenvolvido por <b>Alberson Junior</b> · versão 03/11 11h50
+    Sistema desenvolvido por <b>Alberson Junior</b> · versão 03/11 15h45
   </footer>
 </div>
 
@@ -1227,7 +1227,7 @@ function selos(l,semOrigem){
   s+=QUENTES.has(l.id)?`<span class="selo-quente">🔥 quente</span>`:"";
   if(l.origem&&!semOrigem&&!ehCarrinho(l)) s+=`<span class="selo-origem" title="Origem do lead">🛒 ${esc(String(l.origem).toLowerCase())}</span>`;
   const ph=paradoHa(l);
-  if(ph!==null) s+=`<span class="selo-parado" title="Autorizado há ${fmtDur(ph)} e ninguém fez contato">❄️ lead esfriando há ${fmtDur(ph)}</span>`;
+  if(ph!==null) s+=`<span class="selo-parado" title="Oferta feita há ${fmtDur(ph)} e ninguém fez contato">❄️ lead esfriando há ${fmtDur(ph)}</span>`;
   return s;
 }
 function linha(l){
@@ -1442,7 +1442,7 @@ function abrirFicha(id){
         <dt>Nascimento</dt><dd class="mono">${soData(l.nascimento)}${ida!==null?` · ${ida} anos`:""}</dd>
         <dt>Telefone</dt><dd class="mono">${fmtTel(l.telefone)} <button class="btn btn-sm" data-copiatel="${soDig(l.telefone)}" style="margin-left:6px">copiar</button>${l.whatsapp?" · tem WhatsApp":""}</dd>
         <dt>Matrícula</dt><dd class="mono">${esc(l.matricula||"—")}</dd>
-        <dt>Autorizado em</dt><dd class="mono">${a?soHora(a):"—"}</dd>
+        <dt>Data e hora da oferta</dt><dd class="mono">${a?soHora(a):"—"}</dd>
         ${S.pode.altera?`
         <dt>Prazo (meses)</dt><dd><input id="fiPrazo" type="text" inputmode="numeric" value="${l.prazo||""}" style="max-width:110px" placeholder="ex: 48"></dd>
         <dt>Parcela</dt><dd><input id="fiParcela" type="text" inputmode="decimal" value="${l.parcela?Number(l.parcela).toFixed(2).replace(".",","):""}" style="max-width:150px" placeholder="0,00"></dd>
@@ -1760,7 +1760,7 @@ el("btnExportar").onclick=()=>{
     "POSSUI WHATSAPP":l.whatsapp?"SIM":"NÃO",
     "ORIGEM":blind(l.origem||""),
     "PROVÁVEIS BANCOS COMPATÍVEIS":(provOrd(l)||[]).join(", "),
-    "AUTORIZADO EM":soHora(autorizadoEm(l)), "DATA E HORA DA OFERTA":soHora(l.validoAte),
+    "DATA E HORA DA OFERTA":soHora(autorizadoEm(l)),
     "SITUAÇÃO":STATUS[l.status||"NOVO"].rot, "BANCO":blind(l.banco||""),
     "RESPONSÁVEL":blind(l.respNome||""), "OBSERVAÇÃO":blind(l.obs||""), "ATUALIZADO EM":dataHora(l.atualizadoEm)
   }));
@@ -1782,7 +1782,7 @@ el("btnExportarVendas").onclick=()=>{
     "BANCO":blind(l.banco||""), "PRAZO":l.prazo||"", "PARCELA":Number(l.parcela)||0,
     "VALOR LIBERADO":Number(l.valorLiberado)||0,
     "VENDEDOR":blind(l.respNome||""), "DATA DA VENDA":fmtDataVenda(l)||"", "REGISTRADA NO SISTEMA EM":dataHora(l.atualizadoEm),
-    "AUTORIZADO EM":soHora(autorizadoEm(l)), "OBSERVAÇÃO":blind(l.obs||"")
+    "DATA E HORA DA OFERTA":soHora(autorizadoEm(l)), "OBSERVAÇÃO":blind(l.obs||"")
   }));
   const total=vendas.reduce((s,l)=>s+(Number(l.valorLiberado)||0),0);
   linhas.push({},{ "LOTE":"TOTAL", "NOME":`${vendas.length} venda(s)`, "VALOR LIBERADO":total });
@@ -1917,7 +1917,7 @@ function montaLead(r){
 function previa(){
   const l5=S.imp.linhas.slice(0,5).map(montaLead);
   el("prevTbl").innerHTML=`<table><thead><tr>
-    <th>Nome</th><th>CPF</th><th>Nasc.</th><th>Telefone</th><th>Prazo</th><th>Parcela</th><th>Valor</th><th>Autorizado</th><th>Zap</th><th>Origem</th><th>Prováveis bancos</th></tr></thead><tbody>
+    <th>Nome</th><th>CPF</th><th>Nasc.</th><th>Telefone</th><th>Prazo</th><th>Parcela</th><th>Valor</th><th>Data e hora da oferta</th><th>Zap</th><th>Origem</th><th>Prováveis bancos</th></tr></thead><tbody>
     ${l5.map(l=>{const a=autorizadoEm(l);return `<tr>
       <td>${esc(l.nome)||'<span class="obrig">vazio</span>'}</td>
       <td class="mono">${l.cpf?fmtCPF(l.cpf):'<span class="obrig">vazio</span>'}</td>
@@ -2073,7 +2073,7 @@ function novoLeadManual(){
         <div class="campo"><label>Data de nascimento</label><input id="nlNasc" type="date"></div>
         <div class="campo"><label>Origem do lead</label><input id="nlOrigem" type="text" list="nlOrigens" placeholder="ex: Indicação">
           <datalist id="nlOrigens"><option value="Carrinho Abandonado Vende Aí"><option value="Lista diária"><option value="Indicação"><option value="Site"></datalist></div>
-        <div class="campo"><label>Autorizado em <span style="font-weight:400;color:var(--text-3)">(se souber)</span></label><input id="nlAut" type="datetime-local"></div>
+        <div class="campo"><label>Data e hora da oferta <span style="font-weight:400;color:var(--text-3)">(se souber)</span></label><input id="nlAut" type="datetime-local"></div>
         <div class="campo"><label>Matrícula</label><input id="nlMat" type="text"></div>
         <div class="campo"><label>Possui WhatsApp?</label><select id="nlZap"><option value="">Não sei</option><option value="1">Sim</option><option value="0">Não</option></select></div>
         <div class="campo"><label>Prazo (meses)</label><input id="nlPrazo" type="text" inputmode="numeric"></div>

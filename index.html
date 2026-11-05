@@ -680,7 +680,7 @@ window.HORAS_VALIDADE = 24;
   </main>
 
   <footer class="rodape">
-    Sistema desenvolvido por <b>Alberson Junior</b> · versão 05/11 17h25
+    Sistema desenvolvido por <b>Alberson Junior</b> · versão 05/11 17h40
   </footer>
 </div>
 
@@ -944,7 +944,33 @@ el("liReset").onclick=async()=>{
 };
 el("btnSair").onclick=async()=>{ desligar(); await signOut(auth); };
 
+/* ===== sessão: sai sozinho depois de 10 minutos sem mexer na tela ===== */
+const MIN_INATIVO=10;
+function iniciarInatividade(){
+  S.ultAtiv=Date.now(); S.avisouInat=false;
+  if(!S.inatEventos){
+    S.inatEventos=true;
+    ["mousemove","mousedown","keydown","scroll","touchstart","wheel","click"].forEach(ev=>
+      window.addEventListener(ev,()=>{ S.ultAtiv=Date.now(); S.avisouInat=false; },{passive:true,capture:true}));
+  }
+  if(S.inatRelogio) clearInterval(S.inatRelogio);
+  S.inatRelogio=setInterval(async()=>{
+    if(!S.user) return;
+    const parado=(Date.now()-S.ultAtiv)/60000;
+    if(parado>=MIN_INATIVO){
+      clearInterval(S.inatRelogio); S.inatRelogio=null;
+      desligar(); 
+      try{ await signOut(auth); }catch(e){}
+      el("loginAviso").className="aviso aviso-erro";
+      el("loginAviso").textContent="Você saiu por ficar "+MIN_INATIVO+" minutos sem usar o painel. Entre de novo para continuar.";
+      show("loginAviso",true);
+    }else if(parado>=MIN_INATIVO-1&&!S.avisouInat){
+      S.avisouInat=true; toast("Sem atividade: você será desconectado em 1 minuto. Mexa na tela para continuar.");
+    }
+  },10000);
+}
 function desligar(){
+  if(S.inatRelogio){ clearInterval(S.inatRelogio); S.inatRelogio=null; }
   ["unsubLeads","unsubLotes","unsubUsrs","unsubResets","unsubPedidos","unsubRoteiros"].forEach(k=>{ if(S[k]){S[k]();S[k]=null;} });
   if(S.relogio){ clearInterval(S.relogio); S.relogio=null; }
   piscarTitulo(0);
@@ -996,6 +1022,7 @@ onAuthStateChanged(auth,async u=>{
   show("cxExportVendas",S.pode.exportaVendas);
   show("btnPedirLeads",S.pode.pede);
   irParaAba("leads");
+  iniciarInatividade();
   show("telaCarregando",false);
   el("telaApp").classList.remove("hide"); el("telaApp").style.display="flex";
   ouvirLotes();

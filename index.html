@@ -680,7 +680,7 @@ window.HORAS_VALIDADE = 24;
   </main>
 
   <footer class="rodape">
-    Sistema desenvolvido por <b>Alberson Junior</b> · versão 05/11 17h40
+    Sistema desenvolvido por <b>Alberson Junior</b> · versão 11/11 14h20
   </footer>
 </div>
 
@@ -870,7 +870,9 @@ function minutosSemContato(l){
   if(t===null||isNaN(t)) return null;
   return Math.max(0,Math.floor((Date.now()-t)/60000));
 }
-function paradoHa(l){ const m=minutosSemContato(l); return (m!==null&&m>=MIN_QUENTE)?m:null; }
+/* lead digitado em outra loja: entra em Quentes agora enquanto ninguém fizer contato */
+function ehOutraLoja(l){ return (l.status||"NOVO")==="NOVO"&&/outra loja/.test(norm(l.origem||"")); }
+function paradoHa(l){ if(ehOutraLoja(l)) return null; const m=minutosSemContato(l); return (m!==null&&m>=MIN_QUENTE)?m:null; }
 function fmtDataVenda(l){ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(l.dataVenda||""); return m?`${m[3]}/${m[2]}/${m[1]}`:""; }
 function fmtDur(m){ return m<60?m+"min":(m<1440?Math.floor(m/60)+"h":Math.floor(m/1440)+"d"); }
 
@@ -1221,10 +1223,11 @@ function filtrados(){
   });
   return r;
 }
-/* quentes: sem contato e ainda dentro dos primeiros 30 min da autorização */
+/* quentes: sem contato e ainda dentro dos primeiros 30 min da autorização, ou digitado em outra loja */
 function marcarQuentes(){
   const q=new Set();
   baseLeads().forEach(l=>{
+    if(ehOutraLoja(l)){ q.add(l.id); return; }
     const m=minutosSemContato(l);
     if(m!==null&&m<MIN_QUENTE&&autorizadoEm(l)&&new Date(l.validoAte).getTime()>Date.now()) q.add(l.id);
   });

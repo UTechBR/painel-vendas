@@ -602,6 +602,7 @@ window.HORAS_VALIDADE = 24;
         <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;justify-content:space-between">
           <h2 style="margin:0">Importar planilha de leads</h2>
           <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm" id="btnLimpaDup" title="Procura o mesmo CPF em lotes diferentes do mês">🧹 Limpar duplicados do mês</button>
+          <button class="btn btn-sm" id="btnTrocaOrigem" title="Troca o nome de uma origem em todos os leads já importados do mês aberto">✏️ Trocar origem</button>
           <button class="btn btn-sm" id="btnNovoLead2">➕ Adicionar um lead manualmente</button></div></div>
         <p class="d">Aceita <b>.csv</b>, <b>.xlsx</b> e <b>.xls</b>. Os leads ficam visíveis para toda a equipe na hora.</p>
         <details style="margin:-4px 0 14px;font-size:12.5px;color:var(--text-2)">
@@ -680,7 +681,7 @@ window.HORAS_VALIDADE = 24;
   </main>
 
   <footer class="rodape">
-    Sistema desenvolvido por <b>Alberson Junior</b> · versão 11/11 14h20
+    Sistema desenvolvido por <b>Alberson Junior</b> · versão 11/11 14h50
   </footer>
 </div>
 
@@ -870,8 +871,8 @@ function minutosSemContato(l){
   if(t===null||isNaN(t)) return null;
   return Math.max(0,Math.floor((Date.now()-t)/60000));
 }
-/* lead digitado em outra loja: entra em Quentes agora enquanto ninguém fizer contato */
-function ehOutraLoja(l){ return (l.status||"NOVO")==="NOVO"&&/outra loja/.test(norm(l.origem||"")); }
+/* lead de coleta (antes "digitado em outra loja"): entra em Quentes agora enquanto ninguém fizer contato */
+function ehOutraLoja(l){ return (l.status||"NOVO")==="NOVO"&&/outra loja|coleta/.test(norm(l.origem||"")); }
 function paradoHa(l){ if(ehOutraLoja(l)) return null; const m=minutosSemContato(l); return (m!==null&&m>=MIN_QUENTE)?m:null; }
 function fmtDataVenda(l){ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(l.dataVenda||""); return m?`${m[3]}/${m[2]}/${m[1]}`:""; }
 function fmtDur(m){ return m<60?m+"min":(m<1440?Math.floor(m/60)+"h":Math.floor(m/1440)+"d"); }
@@ -1981,7 +1982,7 @@ function montaLead(r){
     validoAte,
     whatsapp:m.whatsapp>=0?["sim","s","true","1","yes","y"].includes(zap):null,
     bancosProv:m.bancosProv>=0?lerBancos(g("bancosProv")):null,
-    origem:(g("origem")||(m.bancosProv>=0?lerOrigem(g("bancosProv")):"")||((el("loteOrigem")&&el("loteOrigem").value)||"")).replace(/\s+/g," ").trim()
+    origem:renomeiaOrigem((g("origem")||(m.bancosProv>=0?lerOrigem(g("bancosProv")):"")||((el("loteOrigem")&&el("loteOrigem").value)||"")).replace(/\s+/g," ").trim())
   };
 }
 function previa(){
@@ -2124,6 +2125,37 @@ function limparDuplicados(){
   };
 }
 
+/* ===== trocar o nome de uma origem em leads já importados (mês aberto) ===== */
+/* nomes antigos de origem que viram o nome novo já na importação */
+function renomeiaOrigem(o){ return /^digitado em outra loja$/.test(norm(o))?"Coleta":o; }
+function trocarOrigem(){
+  if(!S.pode.importa) return;
+  const cont=new Map();
+  S.leads.forEach(l=>{ const o=(l.origem||"").trim(); if(o) cont.set(o,(cont.get(o)||0)+1); });
+  if(!cont.size){ toast("Nenhum lead com origem em "+rotMes(S.mes)+"."); return; }
+  const fechar=modal({titulo:"Trocar origem · "+rotMes(S.mes), largura:"520px",
+    corpo:`<div class="campo"><label>Origem atual</label><select id="toDe">${[...cont].map(([o,n])=>`<option value="${esc(o)}">${esc(o)} (${fmtNum(n)})</option>`).join("")}</select></div>
+      <div class="campo"><label>Nova origem</label><input id="toPara" maxlength="60" value="Coleta"></div>
+      <div class="dica">Troca em todos os leads do mês aberto com essa origem. Situação, observações e responsável não mudam.</div>
+      <div id="toErro" class="aviso aviso-erro hide"></div>`,
+    pe:`<button class="btn" id="toNao">Cancelar</button><button class="btn btn-primary" id="toSim">Trocar</button>`});
+  el("toNao").onclick=fechar;
+  el("toSim").onclick=async()=>{
+    const de=el("toDe").value, para=el("toPara").value.trim();
+    if(para.length<2){ el("toErro").textContent="Escreva a nova origem."; show("toErro",true); return; }
+    const alvo=S.leads.filter(l=>(l.origem||"").trim()===de);
+    el("toSim").disabled=true; el("toSim").textContent="Trocando…";
+    try{
+      for(let i=0;i<alvo.length;i+=400){
+        const b=writeBatch(db);
+        alvo.slice(i,i+400).forEach(l=>b.update(doc(db,"lotes",l._lote,"leads",l._cpf),{origem:para}));
+        await b.commit();
+      }
+      fechar(); toast(fmtNum(alvo.length)+" lead(s) agora com a origem \""+para+"\".");
+    }catch(err){ el("toSim").disabled=false; el("toSim").textContent="Tentar de novo"; el("toErro").textContent="Não consegui trocar: "+msgErro(err); show("toErro",true); }
+  };
+}
+
 /* ===================== LEAD MANUAL ===================== */
 function cpfValido(c){
   const d=soDig(c); if(d.length!==11||/^(\d)\1{10}$/.test(d)) return false;
@@ -2199,6 +2231,7 @@ function novoLeadManual(){
 el("btnNovoLead").onclick=novoLeadManual;
 el("btnNovoLead2").onclick=novoLeadManual;
 el("btnLimpaDup").onclick=limparDuplicados;
+el("btnTrocaOrigem").onclick=trocarOrigem;
 
 /* ===================== BANCOS PROVÁVEIS ===================== */
 /* "Petra (UY3)" e "PETRA" viram a mesma chave */
